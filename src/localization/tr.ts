@@ -44,8 +44,10 @@ const turkish: Language = {
             'Yapılandırma başarıyla eklendi ve kullanmak için bağlantıya tıklamanız gerekiyor.',
         profile_added: 'Uç nokta başarıyla profile eklendi.',
         endpoint_added: 'Uç nokta başarıyla değiştirildi.',
+        new_update_notification: 'Yeni bir sürüm mevcut',
         new_update:
             'Uygulamanın yeni bir sürümü mevcut. İndirmek ve kuruluma hazırlamak ister misiniz?',
+        up_to_date: 'Uygulamanın en yeni sürümünü kullanıyorsunuz',
         exit_pending:
             'Uygulama çıkış sürecini tamamlıyor; lütfen tekrar başlatmadan önce bir süre bekleyin.',
         help_btn: 'Yardım'
@@ -57,6 +59,8 @@ const turkish: Language = {
         method_warp_desc: "Warp'ı etkinleştir",
         method_gool: 'Gool',
         method_gool_desc: "WarpInWarp'ı etkinleştir",
+        method_masque: 'Masque',
+        method_masque_desc: "Masque'i etkinleştir",
         method_psiphon: 'Psiphon',
         method_psiphon_desc: "Psiphon'u etkinleştir",
         method_psiphon_location: 'Ülke',
@@ -190,7 +194,9 @@ const turkish: Language = {
         custom_dns_title: 'Özel DNS',
         confirm: 'Onaylıyorum',
         update: 'Güncelle',
-        cancel: 'İptal'
+        cancel: 'İptal',
+        yes: 'Evet',
+        no: 'Hayır'
     },
     log: {
         title: 'Uygulama Günlüğü',
@@ -215,6 +221,8 @@ const turkish: Language = {
             'Proxy yapılandırması işletim sisteminizde desteklenmiyor, ancak manuel olarak Warp Proxy kullanabilirsiniz.',
         error_configuring_proxy: (value) => `${value} için proxy yapılandırılırken hata oluştu!`,
         error_wp_not_found: 'Warp-plus dosyası uygulama paketiyle birlikte yer almıyor!',
+        error_mp_not_found: 'masque-plus dosyası uygulama paketiyle birlikte bulunamadı!',
+        error_usque_not_found: 'usque dosyası uygulama paketiyle birlikte bulunamadı!',
         error_wp_exclusions:
             'warp-plus dosyasının yanlış pozitif bildirim ve antivirüs tarafından yanlış tespit nedeniyle karantinaya alındığı ve programın internet erişimini serbest bir şekilde sağlamakta sorunlara yol açtığı muhtemeldir.\nProgram, erişim izni verilirse, bu dosyayı bazı antivirüslerde hariç tutma listesine ekleyebilir. Bunu yapmak ister misiniz?',
         error_wp_stopped: 'warp-plus dosyası çalışırken bir sorunla karşılaştı!',

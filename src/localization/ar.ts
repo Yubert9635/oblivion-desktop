@@ -42,7 +42,9 @@ const arabic: Language = {
         config_added: 'تم إضافة الإعداد بنجاح، وللاستفادة منه يجب عليك النقر على الاتصال.',
         profile_added: 'تمت إضافة نقطة النهاية بنجاح إلى الملف الشخصي.',
         endpoint_added: 'تم استبدال نقطة النهاية بنجاح.',
+        new_update_notification: 'إصدار جديد متاح',
         new_update: 'إصدار جديد من التطبيق متاح. هل ترغب في تنزيله وتجهيزه للتثبيت؟',
+        up_to_date: 'أنت تستخدم أحدث إصدار من التطبيق',
         exit_pending: 'التطبيق يُنهي عملية الإغلاق؛ يرجى الانتظار قليلاً قبل تشغيله مرة أخرى.',
         help_btn: 'مساعدة'
     },
@@ -53,6 +55,8 @@ const arabic: Language = {
         method_warp_desc: 'تمكين Warp',
         method_gool: 'Gool',
         method_gool_desc: 'تمكين WarpInWarp',
+        method_masque: 'ماسكي',
+        method_masque_desc: 'تمكين ماسكي',
         method_psiphon: 'Psiphon',
         method_psiphon_desc: 'تمكين Psiphon',
         method_psiphon_location: 'البلد',
@@ -185,7 +189,9 @@ const arabic: Language = {
         custom_dns_title: 'نظام أسماء النطاقات المخصص',
         confirm: 'أؤكد',
         update: 'تحديث',
-        cancel: 'إلغاء'
+        cancel: 'إلغاء',
+        yes: 'نعم',
+        no: 'لا'
     },
     log: {
         title: 'سجل التطبيق',
@@ -209,6 +215,8 @@ const arabic: Language = {
             'إعدادات البروكسي غير مدعومة في نظام التشغيل الخاص بك، ولكن يمكنك استخدام Warp Proxy يدويًا.',
         error_configuring_proxy: (value) => `حدث خطأ في تكوين البروكسي لـ ${value}!`,
         error_wp_not_found: 'ملف warp-plus غير موجود بجانب حزمة التطبيق!',
+        error_mp_not_found: 'ملف masque-plus غير موجود بجانب حزمة التطبيق!',
+        error_usque_not_found: 'ملف usque غير موجود بجانب حزمة التطبيق!',
         error_wp_exclusions:
             'من المحتمل أن يكون ملف warp-plus قد تم وضعه في الحجر الصحي بسبب تنبيه إيجابي كاذب واكتشاف خاطئ من قبل برنامج مكافحة الفيروسات، مما تسبب في مشاكل في قدرة البرنامج على الوصول إلى الإنترنت بحرية.\nيمكن للبرنامج إضافة الملف المذكور إلى قائمة الاستثناءات في بعض برامج مكافحة الفيروسات إذا تم منح إذن الوصول. هل يجب القيام بذلك؟',
         error_wp_stopped: 'واجه ملف warp-plus مشكلة في التشغيل!',

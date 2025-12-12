@@ -12,6 +12,7 @@ import {
     BrowserWindowConstructorOptions,
     Event,
     NativeImage,
+    Notification,
     MenuItemConstructorOptions,
     dialog
 } from 'electron';
@@ -22,12 +23,11 @@ import log from 'electron-log';
 //import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 //import debug from 'electron-debug';
 import { rimrafSync } from 'rimraf';
-import { spawn } from 'child_process';
+import sudo from 'sudo-prompt';
 import https from 'https';
-import regeditModule, { RegistryPutItem, promisified as regedit } from 'regedit';
 import { networkInterfaces } from 'systeminformation';
 import MenuBuilder from './menu';
-import { exitTheApp, isDev, isDebug } from './lib/utils';
+import { exitTheApp, isDev, isDebug, versionComparison } from './lib/utils';
 import { openDevToolsByDefault, openDevToolsInFullScreen, useCustomWindowXY } from './dxConfig';
 import './ipc';
 import { devPlayground } from './playground';
@@ -47,16 +47,21 @@ import {
     singBoxManager,
     downloadedPath,
     updaterPath,
-    regeditVbsDirPath,
     windowPosition,
     proxyResetPath,
     proxyResetAssetPath,
     isWindows,
     isDarwin,
     isLinux,
-    gtk4Paths
+    gtk4Paths,
+    usquePath,
+    usqueAssetPath,
+    mpPath,
+    mpAssetPath,
+    workingDirPath
 } from '../constants';
 import packageJsonData from '../../package.json';
+import { spawnSync } from 'child_process';
 
 const APP_TITLE = `Oblivion Desktop${isDev() ? ' ᴅᴇᴠ' : ''}`;
 const WINDOW_DIMENSIONS = {
@@ -70,6 +75,10 @@ if (isLinux) {
         app.commandLine.appendSwitch('gtk-version', '3');
     }
     //app.commandLine.appendSwitch('no-sandbox');
+}
+
+if (isWindows) {
+    app.setAppUserModelId(packageJsonData.build.appId);
 }
 
 process.on('uncaughtException', (err) => {
@@ -94,6 +103,9 @@ interface WindowState {
     proxyMode: string | null;
     appLang: ReturnType<typeof getTranslate>;
     isFirstRun: boolean;
+    updateNotification: Notification | undefined;
+    isCheckingForUpdates: boolean;
+    checkForUpdatesIntervalId: NodeJS.Timeout | undefined;
     hasNewUpdate: boolean;
 }
 
@@ -106,6 +118,9 @@ class OblivionDesktop {
         proxyMode: null,
         appLang: getTranslate('en'),
         isFirstRun: false,
+        updateNotification: undefined,
+        isCheckingForUpdates: false,
+        checkForUpdatesIntervalId: undefined,
         hasNewUpdate: false
     };
 
@@ -128,9 +143,18 @@ class OblivionDesktop {
             return;
         }
 
+        try {
+            if (!existsSync(path.join(workingDirPath, 'config.json'))) {
+                spawnSync(usquePath, ['register', '-a', '-n', 'masque-plus'], {
+                    cwd: workingDirPath
+                });
+            }
+        } catch {}
+
         await this.setupInitialConfiguration();
         this.setupIpcEvents();
         this.setupAppEvents();
+        this.setupCheckForUpdates();
         //this.handleShutdown();
     }
 
@@ -172,7 +196,7 @@ class OblivionDesktop {
     }
 
     private async cleanupOldFiles(): Promise<void> {
-        const filesToClean = [wpBinPath, helperPath, netStatsPath];
+        const filesToClean = [wpBinPath, helperPath, netStatsPath, usquePath, mpPath];
         if (isWindows) {
             filesToClean.push(proxyResetPath);
         }
@@ -187,7 +211,9 @@ class OblivionDesktop {
         const filePairs = [
             { src: wpAssetPath, dest: wpBinPath, name: 'wp' },
             { src: helperAssetPath, dest: helperPath, name: 'helper' },
-            { src: netStatsAssetPath, dest: netStatsPath, name: 'netStats' }
+            { src: netStatsAssetPath, dest: netStatsPath, name: 'netStats' },
+            { src: usqueAssetPath, dest: usquePath, name: 'usque' },
+            { src: mpAssetPath, dest: mpPath, name: 'mp' }
         ];
         if (isWindows) {
             filePairs.push({ src: proxyResetAssetPath, dest: proxyResetPath, name: 'proxyReset' });
@@ -466,6 +492,176 @@ class OblivionDesktop {
         globalShortcut.unregister(shortcut);
     }
 
+    private async checkForUpdates(downloadUpdate?: boolean) {
+        if (isDev()) return;
+        if (this.state.isCheckingForUpdates) return;
+        try {
+            this.state.isCheckingForUpdates = true;
+            const betaRelease = await settings.get('betaRelease');
+            const isBetaVersionChecking =
+                typeof betaRelease == 'undefined' ? defaultSettings.betaRelease : betaRelease;
+
+            const response = await fetch(
+                `https://api.github.com/repos/${packageJsonData.build.publish.owner}/${packageJsonData.build.publish.repo}/releases${isBetaVersionChecking ? '?per_page=1' : '/latest'}`
+            );
+            if (response.ok) {
+                const data = await response.json();
+                const latestVersion = String(
+                    isBetaVersionChecking ? data?.[0]?.tag_name : data?.tag_name
+                );
+                const hasNewUpdate =
+                    latestVersion != null &&
+                    versionComparison(String(packageJsonData?.version), latestVersion);
+                const hasNewUpdateState = hasNewUpdate != this.state.hasNewUpdate;
+                this.state.hasNewUpdate = hasNewUpdate;
+
+                if (hasNewUpdateState) {
+                    this.resetCheckForUpdatesInterval();
+                    customEvent.emit('tray-icon', this.state.connectionStatus);
+                }
+                if (this.state.hasNewUpdate) {
+                    if (hasNewUpdateState) this.state.updateNotification?.show();
+                    if (!downloadUpdate) return;
+                    if (!isWindows) {
+                        shell.openExternal(
+                            `https://github.com/${packageJsonData.build.publish.owner}/${packageJsonData.build.publish.repo}/releases/${latestVersion}#download`
+                        );
+                        return;
+                    }
+                    try {
+                        const result: any = await dialog.showMessageBox({
+                            type: 'question',
+                            title: APP_TITLE,
+                            buttons: [this.state.appLang.modal.no, this.state.appLang.modal.yes],
+                            defaultId: 0,
+                            message: this.state.appLang.toast.new_update
+                        });
+                        if (result.response === 1) {
+                            const launchUpdater = (filePath: string) => {
+                                setTimeout(() => {
+                                    const options = {
+                                        name: 'Oblivion Desktop'
+                                    };
+                                    sudo.exec(`"${filePath}"`, options, (error, stdout, stderr) => {
+                                        if (error) {
+                                            if (
+                                                error.message.includes(
+                                                    'User did not grant permission'
+                                                )
+                                            ) {
+                                                log.warn('⚠️ UAC prompt not shown or denied.');
+                                                shell.openExternal(
+                                                    `https://github.com/${packageJsonData.build.publish.owner}/${packageJsonData.build.publish.repo}/releases/latest#download`
+                                                );
+                                            } else {
+                                                log.error('⚠️ Updater failed:', error);
+                                            }
+                                            return;
+                                        }
+                                        log.info('✅ Updater executed successfully with sudo.');
+                                        this.exitProcess();
+                                    });
+                                }, 2500);
+                            };
+
+                            if (fs.existsSync(updaterPath)) {
+                                const updaterVersion = await settings.get('updaterVersion');
+                                if (updaterVersion === latestVersion) {
+                                    launchUpdater(updaterPath);
+                                    return;
+                                }
+                            }
+
+                            this.redirectTo('/');
+                            this.state.mainWindow?.setProgressBar(0);
+                            await this.downloadUpdate(
+                                `https://github.com/${packageJsonData.build.publish.owner}/${packageJsonData.build.publish.repo}/releases/download/${latestVersion}/${packageJsonData.name}-${isWindows ? 'win' : ''}-${process.arch}.exe`,
+                                (percent) => {
+                                    log.info(`Download: ${percent}%`);
+                                    this.state.mainWindow?.setProgressBar(percent / 100);
+                                },
+                                async () => {
+                                    log.info('Download completed!');
+                                    this.state.mainWindow?.setProgressBar(-1);
+                                    fs.copyFile(downloadedPath, updaterPath, (copyErr) => {
+                                        if (copyErr) {
+                                            log.error('⚠️ Failed to copy updater file:', copyErr);
+                                            return;
+                                        }
+                                        log.info(`✅ Updater copied successfully: ${updaterPath}`);
+                                        try {
+                                            fs.chmodSync(updaterPath, 0o755);
+                                            log.info(
+                                                '✅ Executable permissions applied to updater.'
+                                            );
+                                        } catch (chmodErr) {
+                                            log.warn(
+                                                '⚠️ Failed to set executable permissions:',
+                                                chmodErr
+                                            );
+                                        }
+                                        fs.rm(downloadedPath, { force: true }, (unlinkErr) => {
+                                            if (unlinkErr) {
+                                                log.warn(
+                                                    '⚠️ Could not delete old updater file:',
+                                                    unlinkErr
+                                                );
+                                            } else {
+                                                log.info('✅ Old updater file deleted.');
+                                            }
+                                            settings.setSync('updaterVersion', latestVersion);
+                                            launchUpdater(updaterPath);
+                                        });
+                                    });
+                                }
+                            );
+                        }
+                    } catch (error) {
+                        log.error('Failure in update process:', error);
+                    }
+                } else if (downloadUpdate) {
+                    await dialog.showMessageBox({
+                        type: 'info',
+                        title: APP_TITLE,
+                        defaultId: 0,
+                        message: this.state.appLang.toast.up_to_date
+                    });
+                }
+            } else {
+                console.log('Failed to fetch release version:', response.statusText);
+                return false;
+            }
+        } catch (error) {
+            console.log('Failed to fetch release version:', error);
+            return false;
+        } finally {
+            this.state.isCheckingForUpdates = false;
+            this.state.mainWindow?.webContents.send('new-update', this.state.hasNewUpdate);
+        }
+    }
+
+    private resetCheckForUpdatesInterval(): void {
+        clearInterval(this.state.checkForUpdatesIntervalId);
+        this.state.checkForUpdatesIntervalId = undefined;
+        if (this.state.hasNewUpdate) return;
+        this.state.checkForUpdatesIntervalId = setInterval(
+            this.checkForUpdates,
+            3 * 60 * 60 * 1_000
+        );
+    }
+
+    private setupCheckForUpdates(): void {
+        this.state.updateNotification = new Notification({
+            title: APP_TITLE,
+            body: this.state.appLang.toast.new_update_notification,
+            icon: this.getAssetPath('oblivion.png')
+        });
+        this.state.updateNotification.on('click', () => {
+            this.checkForUpdates(true);
+        });
+        this.resetCheckForUpdatesInterval();
+    }
+
     private setupIpcEvents(): void {
         ipcMain.on('tray-menu', (event) => {
             try {
@@ -512,77 +708,9 @@ class OblivionDesktop {
             this.updateTrayMenu();
         });
 
-        ipcMain.on('download-update', async (_event, latestVersion: string) => {
-            if (!this.state.mainWindow) return;
-            this.state.hasNewUpdate = true;
-            customEvent.emit('tray-icon', this.state.connectionStatus);
-            if (!isWindows) return;
-            try {
-                const result: any = await dialog.showMessageBox({
-                    type: 'question',
-                    title: APP_TITLE,
-                    buttons: ['No', 'Yes'],
-                    defaultId: 0,
-                    message: this.state.appLang.toast.new_update
-                });
-                if (result.response === 1) {
-                    const launchUpdater = (filePath: string) => {
-                        setTimeout(() => {
-                            const child = spawn(filePath, [], {
-                                detached: true,
-                                stdio: 'ignore'
-                            });
-                            child.unref();
-                            log.info('✅ Updater executed successfully.');
-                            this.exitProcess();
-                        }, 2500);
-                    };
-
-                    if (fs.existsSync(updaterPath)) {
-                        const updaterVersion = await settings.get('updaterVersion');
-                        if (updaterVersion === latestVersion) {
-                            launchUpdater(updaterPath);
-                            return;
-                        }
-                    }
-
-                    this.redirectTo('/');
-                    this.state.mainWindow?.setProgressBar(0);
-                    await this.downloadUpdate(
-                        `https://github.com/${packageJsonData.build.publish.owner}/${packageJsonData.build.publish.repo}/releases/download/${latestVersion}/${packageJsonData.name}-${isWindows ? 'win' : ''}-${process.arch}.exe`,
-                        (percent) => {
-                            log.info(`Download: ${percent}%`);
-                            this.state.mainWindow?.setProgressBar(percent / 100);
-                        },
-                        async () => {
-                            log.info('Download completed!');
-                            this.state.mainWindow?.setProgressBar(-1);
-                            fs.copyFile(downloadedPath, updaterPath, (copyErr) => {
-                                if (copyErr) {
-                                    log.error('⚠️ Failed to copy updater file:', copyErr);
-                                    return;
-                                }
-                                log.info(`✅ Updater copied successfully: ${updaterPath}`);
-                                fs.rm(downloadedPath, { force: true }, (unlinkErr) => {
-                                    if (unlinkErr) {
-                                        log.warn(
-                                            '⚠️ Could not delete old updater file:',
-                                            unlinkErr
-                                        );
-                                    } else {
-                                        log.info('✅ Old updater file deleted.');
-                                    }
-                                    settings.set('updaterVersion', latestVersion);
-                                    launchUpdater(updaterPath);
-                                });
-                            });
-                        }
-                    );
-                }
-            } catch (err) {
-                log.error('Error handling download-update event:', err);
-            }
-        });
+        ipcMain.on('check-update', async (_event, downloadUpdate?: boolean) =>
+            this.checkForUpdates(downloadUpdate)
+        );
     }
 
     private async downloadUpdate(
@@ -756,10 +884,6 @@ class OblivionDesktop {
             this.state.appIcon = new Tray(trayIcon);
             this.state.appIcon.setToolTip(APP_TITLE);
             this.state.appIcon.on('click', () => {
-                if (this.state.hasNewUpdate) {
-                    this.state.hasNewUpdate = false;
-                    customEvent.emit('tray-icon', this.state.connectionStatus);
-                }
                 this.redirectTo('');
             });
             /*this.state.appIcon.on('right-click', () => {
@@ -1034,39 +1158,13 @@ class OblivionDesktop {
         }
     }*/
 
-    private async registerStartupProxyReset(): Promise<void> {
-        if (!isWindows) return;
-        const appPath = `"${proxyResetPath}"`;
-        const registryPath = `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run`;
-        const valueName = 'OblivionProxyReset';
-        try {
-            regeditModule.setExternalVBSLocation(regeditVbsDirPath);
-            const result = await regedit.list([registryPath]);
-            const existingValue = result[registryPath]?.values?.[valueName]?.value;
-            if (existingValue === appPath) {
-                //log.info('Proxy reset script already registered in startup.');
-                return;
-            }
-            const values: RegistryPutItem = {
-                [valueName]: {
-                    value: appPath,
-                    type: 'REG_SZ'
-                }
-            };
-            await regedit.putValue({ [registryPath]: values });
-            log.info('Proxy reset script registered in startup.');
-        } catch (err) {
-            console.error('Failed to register proxy reset:', err);
-        }
-    }
-
     private async getNetworkList() {
         const netData = await networkInterfaces();
         const interfaces = Array.isArray(netData) ? netData : netData ? [netData] : [];
         const getList = interfaces
             .filter((i) => i.ip4 && !i.internal && !i.ip4.startsWith('169.254.'))
             .map((i) => i.ip4);
-        await settings.set('networkList', JSON.stringify(getList));
+        await settings.setSync('networkList', JSON.stringify(getList));
         return getList;
     }
 
@@ -1092,7 +1190,6 @@ class OblivionDesktop {
                 await this.setupMetaData();
                 await this.getNetworkList();
                 //await this.exitStrategy();
-                await this.registerStartupProxyReset();
                 log.info('od is ready!');
             } catch (error) {
                 log.error('Error during app ready handling:', error);

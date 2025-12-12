@@ -2,7 +2,7 @@ import { ipcMain, IpcMainEvent } from 'electron';
 import log from 'electron-log';
 import settings from 'electron-settings';
 
-import { spawn, exec } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
@@ -124,18 +124,32 @@ class SingBoxManager {
     }
 
     public async stopHelper(): Promise<void> {
-        if (!(await this.isProcessRunning(helperFileName))) return;
+        if (!this.isProcessRunning(helperFileName)) return;
 
         log.info('Stopping Oblivion-Helper...');
-        this.helperClient.Exit({}, () => {});
+        this.helperClient.Exit({}, (err: GrpcError) => {
+            if (err) {
+                const messagePart = err.message.substring(err.message.indexOf(':') + 1).trim();
+                const errorCodeLabel = mapGrpcErrorCodeToLabel(err.code);
+                const errorMessage = `Helper Error: [${errorCodeLabel}] ${messagePart}`;
+                log.error(errorMessage);
+            }
+        });
         await this.delay(CONFIG.delays.statusMonitor);
     }
 
     public async stopHelperOnStart(): Promise<void> {
-        if (!(await this.isProcessRunning(helperFileName))) return;
+        if (!this.isProcessRunning(helperFileName)) return;
 
         log.info('Stopping Oblivion-Helper on startup...');
-        this.helperClient.Exit({}, () => {});
+        this.helperClient.Exit({}, (err: GrpcError) => {
+            if (err) {
+                const messagePart = err.message.substring(err.message.indexOf(':') + 1).trim();
+                const errorCodeLabel = mapGrpcErrorCodeToLabel(err.code);
+                const errorMessage = `Helper Error: [${errorCodeLabel}] ${messagePart}`;
+                log.error(errorMessage);
+            }
+        });
         await this.delay(CONFIG.delays.statusMonitor * 2);
         this.isListeningToHelper = false;
     }
@@ -198,7 +212,7 @@ class SingBoxManager {
     }
 
     private async ensureHelperIsRunning(): Promise<boolean> {
-        return (await this.isProcessRunning(helperFileName)) || this.startHelper();
+        return this.isProcessRunning(helperFileName) || this.startHelper();
     }
 
     private async startHelper(): Promise<boolean> {
@@ -213,7 +227,7 @@ class SingBoxManager {
             try {
                 disableProxy(regeditVbsDirPath);
             } catch (error) {
-                //log.error('Error managing system proxy:', error);
+                log.error('Error managing system proxy:', error);
             }
 
             const command = this.platformHelper.start(helperPath);
@@ -242,6 +256,13 @@ class SingBoxManager {
                 ) {
                     customEvent.emit('tray-icon', 'disconnected');
                     reject(`${this.appLang?.log.error_canceled_by_user}`);
+                }
+                if (errorMessage.includes('command was found in the module')) {
+                    log.error(
+                        'The `Start-Process` command exists in the `Microsoft.PowerShell.Management` module, but PowerShell was unable to load this module.'
+                    );
+                    customEvent.emit('tray-icon', 'disconnected');
+                    reject('PowerShell module error detected.');
                 }
             });
 
@@ -290,7 +311,7 @@ class SingBoxManager {
             address,
             endpoint,
             plainDns,
-            doh,
+            DoH,
             singBoxUdpBlock,
             singBoxDiscordBypass
         ] = await Promise.all([
@@ -318,7 +339,7 @@ class SingBoxManager {
             tunSniff: this.getSettingOrDefault(sniff, defaultSettings.singBoxSniff),
             tunAddr: this.getTunAddr(address),
             plainDns: this.getPlainDns(dns, plainDns),
-            DoHDns: this.getDoHDns(dns, doh),
+            DoHDns: this.getDoHDns(dns, DoH),
             tunEndpoint: this.getSettingOrDefault(endpoint, defaultSettings.endpoint),
             udpBlock: this.getSettingOrDefault(singBoxUdpBlock, defaultSettings.singBoxUdpBlock),
             discordBypass: this.getSettingOrDefault(
@@ -346,13 +367,15 @@ class SingBoxManager {
 
     private getPlainDns(dns: any, plainDns: any): string {
         if (typeof dns !== 'string') return dnsServers[0].value;
+        if (dns === 'local') return '';
         if (dns === 'custom' && plainDns === '') return dnsServers[0].value;
         return dns === 'custom' ? plainDns : dns;
     }
 
     private getDoHDns(dns: any, doh: any): string {
         if (typeof dns !== 'string') return `https://${dnsServers[0].value}/dns-query`;
-        if (dns === 'custom' && doh === '') return `https://${dnsServers[0].value}/dns-query`;
+        if (dns === 'local' || (dns === 'custom' && (typeof doh !== 'string' || doh === '')))
+            return `https://${dnsServers[0].value}/dns-query`;
         return dns === 'custom' ? doh : `https://${dns}/dns-query`;
     }
 
@@ -451,16 +474,11 @@ class SingBoxManager {
         this.event?.reply('guide-toast', message);
     }
 
-    private isProcessRunning(processName: string): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            exec(this.platformHelper.running(processName).command, (err, stdout) => {
-                if (err) {
-                    reject(err.message);
-                    return;
-                }
-                resolve(stdout.toLowerCase().includes(processName.toLowerCase()));
-            });
-        });
+    private isProcessRunning(processName: string): boolean {
+        return execSync(this.platformHelper.running(processName).command)
+            .toString('utf-8')
+            .toLowerCase()
+            .includes(processName.toLowerCase());
     }
 
     private async executeGrpcCall<T>(method: GrpcMethod, request: any): Promise<boolean> {

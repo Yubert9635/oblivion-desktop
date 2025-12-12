@@ -43,8 +43,10 @@ const vietnamese: Language = {
             'Cấu hình đã được thêm thành công, và để sử dụng nó, bạn phải nhấp vào kết nối.',
         profile_added: 'Điểm cuối đã được thêm thành công vào hồ sơ.',
         endpoint_added: 'Điểm cuối đã được thay thế thành công.',
+        new_update_notification: 'Phiên bản mới đã có sẵn',
         new_update:
             'Một phiên bản mới của ứng dụng có sẵn. Bạn có muốn tải xuống và chuẩn bị cài đặt không?',
+        up_to_date: 'Bạn đang dùng phiên bản mới nhất của ứng dụng',
         exit_pending:
             'Ứng dụng đang hoàn tất quá trình thoát; vui lòng đợi một chút trước khi khởi chạy lại.',
         help_btn: 'Trợ giúp'
@@ -56,6 +58,8 @@ const vietnamese: Language = {
         method_warp_desc: 'Bật Warp',
         method_gool: 'Gool',
         method_gool_desc: 'Bật WarpInWarp',
+        method_masque: 'Masque',
+        method_masque_desc: 'Bật Masque',
         method_psiphon: 'Psiphon',
         method_psiphon_desc: 'Bật Psiphon',
         method_psiphon_location: 'Quốc gia',
@@ -190,7 +194,9 @@ const vietnamese: Language = {
         custom_dns_title: 'DNS tùy chỉnh',
         confirm: 'Tôi xác nhận',
         update: 'Cập nhật',
-        cancel: 'Hủy'
+        cancel: 'Hủy',
+        yes: 'Có',
+        no: 'Không'
     },
     log: {
         title: 'Nhật ký ứng dụng',
@@ -214,6 +220,8 @@ const vietnamese: Language = {
             'Cấu hình proxy không được hỗ trợ trên hệ điều hành của bạn, nhưng bạn có thể sử dụng Warp Proxy thủ công.',
         error_configuring_proxy: (value) => `Lỗi cấu hình proxy cho ${value}!`,
         error_wp_not_found: 'Tệp warp-plus không được tìm thấy cùng với gói ứng dụng!',
+        error_mp_not_found: 'Tệp masque-plus không nằm cùng với gói ứng dụng!',
+        error_usque_not_found: 'Tệp usque không nằm cùng với gói ứng dụng!',
         error_wp_exclusions:
             'Rất có thể tệp warp-plus đã bị cách ly do cảnh báo dương tính giả và phát hiện sai bởi phần mềm diệt virus, gây ra vấn đề với khả năng của chương trình để truy cập internet một cách tự do.\nChương trình có thể thêm tệp này vào danh sách loại trừ trong một số phần mềm diệt virus nếu được cấp quyền truy cập. Có nên thực hiện điều này không?',
         error_wp_stopped: 'Tệp warp-plus gặp vấn đề khi chạy!',

@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import { FC, FormEvent } from 'react';
-import { Swipe } from 'react-swipe-component';
+//import { Swipe } from 'react-swipe-component';
 import { cfFlag } from '../../lib/cfFlag';
 import { IpConfig } from './useLanding';
 import { Language } from '../../../localization/type';
@@ -12,7 +12,6 @@ interface LandingBodyProps {
     isLoading: boolean;
     ipInfo: IpConfig;
     ipData?: boolean;
-    proxyMode: string;
     ping: number;
     statusText: string;
     onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -38,7 +37,6 @@ const LandingBody: FC<LandingBodyProps> = ({
     isLoading,
     onSubmit,
     ping,
-    proxyMode,
     statusText,
     proxyStatus,
     appVersion,
@@ -59,28 +57,21 @@ const LandingBody: FC<LandingBodyProps> = ({
                     </div>
                     <form action='' onSubmit={onSubmit}>
                         <div className='connector'>
-                            <Swipe
-                                nodeName='div'
-                                onSwipedLeft={handleOnSwipedLeft}
-                                onSwipedRight={handleOnSwipedRight}
+                            <button
+                                type='submit'
+                                role='switch'
+                                aria-checked={isConnected}
+                                tabIndex={0}
+                                className={classNames(
+                                    'switch',
+                                    isConnected ? 'active' : '',
+                                    isLoading ? 'isLoading' : ''
+                                )}
                             >
-                                {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                                <button
-                                    type='submit'
-                                    role='switch'
-                                    aria-checked={isConnected}
-                                    tabIndex={0}
-                                    className={classNames(
-                                        'switch',
-                                        isConnected ? 'active' : '',
-                                        isLoading ? 'isLoading' : ''
-                                    )}
-                                >
-                                    <div className='circle'>
-                                        <div className='spinner' />
-                                    </div>
-                                </button>
-                            </Swipe>
+                                <div className='circle'>
+                                    <div className='spinner' />
+                                </div>
+                            </button>
                         </div>
                     </form>
                     <div
@@ -97,12 +88,7 @@ const LandingBody: FC<LandingBodyProps> = ({
                         className={classNames(
                             'inFoot',
                             'withIp',
-                            isConnected &&
-                                !isLoading &&
-                                proxyMode !== 'none' &&
-                                proxyStatus !== 'none' &&
-                                proxyMode !== '' &&
-                                ipData
+                            isConnected && !isLoading && proxyStatus !== 'none' && ipData
                                 ? 'active'
                                 : ''
                         )}

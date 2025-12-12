@@ -5,10 +5,13 @@ import regeditModule, { RegistryPutItem, promisified as regedit } from 'regedit'
 import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { defaultSettings } from '../../defaultSettings';
-import { shouldProxySystem } from './utils';
+import { isSocksProxy, shouldProxySystem } from './utils';
 import { createPacScript, killPacScriptServer, servePacScript } from './pacScript';
 //import { getTranslateElectron } from '../../localization/electron';
 import { getTranslate } from '../../localization';
+import { withDefault } from '../../renderer/lib/withDefault';
+import { isWindows, proxyResetPath, regeditVbsDirPath } from '../../constants';
+import path from 'path';
 
 const execPromise = promisify(exec);
 
@@ -37,6 +40,50 @@ const setRoutingRules = (value: any) => {
 
 // TODO reset to prev proxy settings on disable
 // TODO refactor (move each os functions to it's own file)
+
+async function registerStartupProxyReset(): Promise<void> {
+    if (!isWindows) return;
+    const appPath = `"${proxyResetPath}"`;
+    const registryPath = `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run`;
+    const valueName = 'OblivionProxyReset';
+    try {
+        regeditModule.setExternalVBSLocation(regeditVbsDirPath);
+        const result = await regedit.list([registryPath]);
+        const existingValue = result[registryPath]?.values?.[valueName]?.value;
+        if (existingValue === appPath) {
+            //log.info('Proxy reset script already registered in startup.');
+            return;
+        }
+        const values: RegistryPutItem = {
+            [valueName]: {
+                value: appPath,
+                type: 'REG_SZ'
+            }
+        };
+        await regedit.putValue({ [registryPath]: values });
+        log.info('Proxy reset script registered in startup.');
+    } catch (err) {
+        console.error('Failed to register proxy reset:', err);
+    }
+}
+
+async function removeStartupProxyReset(): Promise<void> {
+    if (!isWindows) return;
+    const registryPath = `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run`;
+    const valueName = 'OblivionProxyReset';
+    try {
+        regeditModule.setExternalVBSLocation(regeditVbsDirPath);
+        const result = await regedit.list([registryPath]);
+        const existingValue = result[registryPath]?.values?.[valueName]?.value;
+        if (existingValue === undefined) {
+            return;
+        }
+        await (regedit as any).deleteValue([path.join(registryPath, valueName)]);
+        log.info('Proxy reset script removed.');
+    } catch (err) {
+        console.error('Failed to remove proxy reset:', err);
+    }
+}
 
 // tweaking windows proxy settings using regedit
 const windowsProxySettings = (config: RegistryPutItem, regeditVbsDirPath: string) => {
@@ -346,7 +393,8 @@ export const enableProxy = async (regeditVbsDirPath: string, ipcEvent?: IpcMainE
     const port = (await settings.get('port')) || defaultSettings.port;
     const routingRules = await settings.get('routingRules');
     const lang = await settings.get('lang');
-    appLang = getTranslate(String(typeof lang !== 'undefined' ? lang : defaultSettings.lang));
+    appLang = getTranslate(String(withDefault(lang, defaultSettings.lang)));
+    const isSocks = isSocksProxy(String(method));
 
     if (!shouldProxySystem(proxyMode)) {
         log.info('skipping set system proxy');
@@ -359,16 +407,17 @@ export const enableProxy = async (regeditVbsDirPath: string, ipcEvent?: IpcMainE
         return new Promise<void>(async (resolve, reject) => {
             try {
                 let pacServeUrl = '';
-                if (method === 'psiphon') {
+                if (isSocks) {
                     await createPacScript(String(hostIP), String(port));
                     pacServeUrl = await servePacScript(Number(port) + 1);
                     log.info('PAC server URL:', pacServeUrl);
                 }
+                await registerStartupProxyReset();
                 await windowsProxySettings(
                     {
                         ProxyServer: {
                             type: 'REG_SZ',
-                            value: `${method === 'psiphon' ? 'socks=' : ''}${hostIP.toString()}:${port.toString()}`
+                            value: `${isSocks ? 'socks=' : ''}${hostIP.toString()}:${port.toString()}`
                         },
                         ProxyOverride: {
                             type: 'REG_SZ',
@@ -376,7 +425,7 @@ export const enableProxy = async (regeditVbsDirPath: string, ipcEvent?: IpcMainE
                         },
                         AutoConfigURL: {
                             type: 'REG_SZ',
-                            value: `${method === 'psiphon' ? pacServeUrl + '/proxy.txt' : ''}`
+                            value: `${isSocks ? pacServeUrl + '/proxy.txt' : ''}`
                         },
                         ProxyEnable: {
                             type: 'REG_DWORD',
@@ -491,7 +540,8 @@ export const disableProxy = async (regeditVbsDirPath: string, ipcEvent?: IpcMain
     const proxyMode = await settings.get('proxyMode');
     const method = (await settings.get('method')) || defaultSettings.method;
     const lang = await settings.get('lang');
-    appLang = getTranslate(String(typeof lang !== 'undefined' ? lang : defaultSettings.lang));
+    appLang = getTranslate(String(withDefault(lang, defaultSettings.lang)));
+    const isSocks = isSocksProxy(String(method));
 
     if (proxyMode === 'none') {
         log.info('skipping system proxy disable.');
@@ -502,7 +552,7 @@ export const disableProxy = async (regeditVbsDirPath: string, ipcEvent?: IpcMain
 
     if (process.platform === 'win32') {
         return new Promise<void>(async (resolve, reject) => {
-            if (method === 'psiphon') killPacScriptServer();
+            if (isSocks) killPacScriptServer();
 
             try {
                 await windowsProxySettings(
@@ -514,6 +564,7 @@ export const disableProxy = async (regeditVbsDirPath: string, ipcEvent?: IpcMain
                     },
                     regeditVbsDirPath
                 );
+                await removeStartupProxyReset();
                 log.info('system proxy has been disabled on your system.');
                 resolve();
             } catch (error) {

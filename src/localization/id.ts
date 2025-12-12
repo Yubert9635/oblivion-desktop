@@ -44,8 +44,10 @@ const indonesia: Language = {
             'Konfigurasi telah berhasil ditambahkan, dan untuk menggunakannya, Anda harus mengklik koneksi.',
         profile_added: 'Titik akhir telah berhasil ditambahkan ke profil.',
         endpoint_added: 'Endpoint berhasil diganti.',
+        new_update_notification: 'Versi baru tersedia',
         new_update:
             'Versi baru aplikasi tersedia. Apakah Anda ingin mengunduh dan menyiapkannya untuk instalasi?',
+        up_to_date: 'Anda sedang menggunakan versi terbaru aplikasi ini',
         exit_pending:
             'Aplikasi sedang menyelesaikan proses keluar; harap tunggu sebentar sebelum membukanya kembali.',
         help_btn: 'Bantuan'
@@ -57,6 +59,8 @@ const indonesia: Language = {
         method_warp_desc: 'Aktifkan Warp',
         method_gool: 'Gool',
         method_gool_desc: 'Aktifkan WarpInWarp',
+        method_masque: 'Masque',
+        method_masque_desc: 'Aktifkan Masque',
         method_psiphon: 'Psiphon',
         method_psiphon_desc: 'Aktifkan Psiphon',
         method_psiphon_location: 'Negara',
@@ -190,7 +194,9 @@ const indonesia: Language = {
         custom_dns_title: 'DNS Kustom',
         confirm: 'Saya mengerti',
         update: 'Perbarui',
-        cancel: 'Batalkan'
+        cancel: 'Batalkan',
+        yes: 'Ya',
+        no: 'Tidak'
     },
     log: {
         title: 'Log Aplikasi',
@@ -213,6 +219,8 @@ const indonesia: Language = {
             'Konfigurasi proxy tidak didukung pada sistem operasi Anda, tetapi Anda dapat menggunakan Warp Proxy secara manual.',
         error_configuring_proxy: (value) => `Kesalahan mengkonfigurasi proxy untuk ${value}!`,
         error_wp_not_found: 'File warp-plus tidak terletak di samping paket aplikasi!',
+        error_mp_not_found: 'File masque-plus tidak ditemukan di samping paket aplikasi!',
+        error_usque_not_found: 'File usque tidak ditemukan di samping paket aplikasi!',
         error_wp_exclusions:
             'Kemungkinan file warp-plus telah dikarantina karena pemberitahuan positif palsu dan deteksi yang salah oleh antivirus, yang menyebabkan masalah dengan kemampuan program untuk mengakses internet secara bebas.\nProgram dapat menambahkan file tersebut ke daftar pengecualian di beberapa antivirus jika izin akses diberikan. Haruskah ini dilakukan?',
         error_wp_stopped: 'File warp-plus mengalami masalah saat dijalankan!',

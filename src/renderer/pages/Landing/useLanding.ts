@@ -1,33 +1,26 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
 import { settings } from '../../lib/settings';
 import { defaultSettings } from '../../../defaultSettings';
 import { ipcRenderer, onEscapeKeyPressed } from '../../lib/utils';
 import {
     defaultToast,
-    defaultToastWithHelp,
     defaultToastWithSubmitButton,
     loadingToast,
     stopLoadingToast
 } from '../../lib/toasts';
-import { checkNewUpdate } from '../../lib/checkNewUpdate';
 import packageJsonData from '../../../../package.json';
 import { getLanguageName } from '../../../localization';
 import useTranslate from '../../../localization/useTranslate';
 import { INetStats } from '../../../constants';
 import { isSystemDateValid } from '../../lib/systemDateValidator';
+import { withDefault } from '../../lib/withDefault';
 
 export type IpConfig = {
     countryCode: string | boolean;
     ip: string;
-};
-
-type DownloadProgress = {
-    status: string;
-    percent: number;
 };
 
 let isFetching = false;
@@ -48,13 +41,17 @@ const useLanding = () => {
     const appLang = useTranslate();
     const {
         isConnected,
-        setIsConnected,
         isLoading,
         setIsLoading,
+        isCheckingForUpdates,
+        setIsCheckingForUpdates,
+        hasNewUpdate,
+        downloadProgress,
         statusText,
         setStatusText,
         proxyStatus,
-        setProxyStatus
+        setProxyStatus,
+        proxyMode
     } = useStore();
     const [ipInfo, setIpInfo] = useState<IpConfig>({
         countryCode: false,
@@ -62,26 +59,20 @@ const useLanding = () => {
     });
 
     const [drawerIsOpen, setDrawerIsOpen] = useState<boolean>(false);
-    const toggleDrawer = () => {
-        setDrawerIsOpen((prevState) => !prevState);
+    const toggleDrawer = (newState?: boolean) => {
+        const isFull = window?.innerWidth > 1049;
+        if (!isFull)
+            setDrawerIsOpen(typeof newState == 'boolean' ? newState : (prevState) => !prevState);
     };
 
     const [lang, setLang] = useState<string>();
     const [ipData, setIpData] = useState<boolean>();
     const [method, setMethod] = useState<string>('');
     const [ping, setPing] = useState<number>(0);
-    const [proxyMode, setProxyMode] = useState<string>('');
     const [netStats, setNetStats] = useState<INetStats>(defaultNetStats);
     const [dataUsage, setDataUsage] = useState<boolean>(false);
     const [betaRelease, setBetaRelease] = useState<boolean>(false);
-    const [hasNewUpdate, setHasNewUpdate] = useState<boolean>(false);
     const [testUrl, setTestUrl] = useState<string>();
-    const [downloadProgress, setDownloadProgress] = useState<DownloadProgress>({
-        status: 'pending',
-        percent: 0
-    });
-
-    const navigate = useNavigate();
 
     const getIpLocation = async () => {
         if (isFetching || isLoading || !isConnected) return;
@@ -98,9 +89,14 @@ const useLanding = () => {
             const timeoutId = setTimeout(() => {
                 controller.abort();
             }, 5000);
-            const response = await fetch(String(testUrl), {
-                signal
-            });
+            const response = await fetch(
+                String(
+                    testUrl?.includes('connectivity') ? testUrl.replace('https', 'http') : testUrl
+                ),
+                {
+                    signal
+                }
+            );
             const data = await response.text();
             const parseLine = (key: string) =>
                 data
@@ -190,32 +186,6 @@ const useLanding = () => {
         getIpLocation();
     };
 
-    const checkForUpdates = async () => {
-        const canCheckNewVer = localStorage?.getItem('OBLIVION_CHECKUPDATE');
-        if (typeof canCheckNewVer !== 'undefined' && canCheckNewVer === 'false') return;
-        try {
-            const comparison = await checkNewUpdate(packageJsonData?.version);
-            setHasNewUpdate(typeof comparison === 'boolean' ? comparison : false);
-            localStorage.setItem('OBLIVION_CHECKUPDATE', 'false');
-            localStorage.setItem(
-                'OBLIVION_NEWUPDATE',
-                typeof comparison === 'boolean' ? (comparison ? 'true' : 'false') : 'false'
-            );
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    const resetCheckUpdateFlag = () => {
-        return setInterval(
-            () => {
-                localStorage.setItem('OBLIVION_CHECKUPDATE', 'true');
-                setTimeout(checkForUpdates, 10000);
-            },
-            3 * 60 * 60 * 1000
-        );
-    };
-
     useEffect(() => {
         //ipcRenderer.clean();
 
@@ -224,43 +194,19 @@ const useLanding = () => {
                 'lang',
                 'ipData',
                 'method',
-                'proxyMode',
                 //'shortcut',
                 'dataUsage',
                 'betaRelease',
                 'testUrl'
             ])
             .then((values) => {
-                setLang(typeof values.lang === 'undefined' ? getLanguageName() : values.lang);
-                setIpData(
-                    typeof values.ipData === 'undefined' ? defaultSettings.ipData : values.ipData
-                );
-                setMethod(
-                    typeof values.method === 'undefined' ? defaultSettings.method : values.method
-                );
-                setProxyMode(
-                    typeof values.proxyMode === 'undefined'
-                        ? defaultSettings.proxyMode
-                        : values.proxyMode
-                );
-                /*setShortcut(
-                    typeof values.shortcut === 'undefined'
-                        ? defaultSettings.shortcut
-                        : values.shortcut
-                );*/
-                setDataUsage(
-                    typeof values.dataUsage === 'undefined'
-                        ? defaultSettings.dataUsage
-                        : values.dataUsage
-                );
-                setBetaRelease(
-                    typeof values.betaRelease === 'undefined'
-                        ? defaultSettings.betaRelease
-                        : values.betaRelease
-                );
-                setTestUrl(
-                    typeof values.testUrl === 'undefined' ? defaultSettings.testUrl : values.testUrl
-                );
+                setLang(withDefault(values.lang, getLanguageName()));
+                setIpData(withDefault(values.ipData, defaultSettings.ipData));
+                setMethod(withDefault(values.method, defaultSettings.method));
+                // setShortcut(withDefault(values.shortcut, defaultSettings.shortcut)); // Optional if needed
+                setDataUsage(withDefault(values.dataUsage, defaultSettings.dataUsage));
+                setBetaRelease(withDefault(values.betaRelease, defaultSettings.betaRelease));
+                setTestUrl(withDefault(values.testUrl, defaultSettings.testUrl));
             })
             .catch((error) => {
                 console.log('Error fetching settings:', error);
@@ -268,108 +214,19 @@ const useLanding = () => {
 
         cachedIpInfo = null;
 
-        onEscapeKeyPressed(() => {
-            setDrawerIsOpen(false);
+        const onEscapeKeyPressedHandler = onEscapeKeyPressed(() => {
+            toggleDrawer(false);
         });
         toast.remove('COPIED');
 
         const handleResize = () => {
-            if (window.innerWidth > 1049) {
-                setTimeout(() => setDrawerIsOpen(true), 300);
-            } else {
-                setTimeout(() => setDrawerIsOpen(false), 300);
-            }
+            const isFull = window?.innerWidth > 1049;
+            setTimeout(() => setDrawerIsOpen(isFull), 300);
         };
         handleResize();
 
-        ipcRenderer.on('guide-toast', (message: any) => {
-            if (message === 'error_port_restart') {
-                loadingToast(appLang.log.error_port_restart);
-            } else if (message === 'sb_error_tun0') {
-                setIsLoading(false);
-                setIsConnected(false);
-                stopLoadingToast();
-                defaultToast(appLang.log.error_script_failed, 'GUIDE', 7000);
-            } else if (message === 'sb_preparing') {
-                loadingToast(appLang.status.preparing_rulesets);
-                setTimeout(function () {
-                    stopLoadingToast();
-                }, 3000);
-            } else if (message === 'sb_download_failed') {
-                setIsLoading(false);
-                setIsConnected(false);
-                stopLoadingToast();
-                setTimeout(function () {
-                    defaultToast(
-                        appLang.status.downloading_rulesets_failed,
-                        'DOWNLOAD_FAILED',
-                        3000
-                    );
-                }, 2000);
-            } else if (message === 'sb_start_failed') {
-                stopLoadingToast();
-                setIsLoading(false);
-                setIsConnected(false);
-            } else if (message === 'sb_stop_failed') {
-                setIsLoading(false);
-                setIsConnected(true);
-            } else if (message === 'sb_error_ipv6') {
-                stopLoadingToast();
-                setIsLoading(false);
-                setIsConnected(false);
-                defaultToastWithHelp(
-                    appLang.log.error_singbox_ipv6_address,
-                    'https://github.com/bepass-org/oblivion-desktop/wiki/Fixing-the-set-ipv6-address:-Element-not-found-Error',
-                    appLang.toast.help_btn,
-                    'GUIDE'
-                );
-            } else if (message === 'error_warp_identity') {
-                defaultToastWithHelp(
-                    appLang.log.error_warp_identity,
-                    'https://github.com/bepass-org/oblivion-desktop/wiki/Fixing-proxy-connection-issues-on-certain-networks',
-                    appLang.toast.help_btn,
-                    'GUIDE'
-                );
-            } else {
-                defaultToast(message, 'GUIDE', 7000);
-            }
-        });
-
-        ipcRenderer.on('tray-menu', (args: any) => {
-            if (args.key === 'connect' && !isLoading) {
-                setIpInfo({
-                    countryCode: false,
-                    ip: ''
-                });
-                setProxyStatus(proxyMode);
-                ipcRenderer.sendMessage('wp-start');
-                setIsLoading(true);
-                setPing(0);
-            }
-            if (args.key === 'disconnect' && !isLoading) {
-                ipcRenderer.sendMessage('wp-end');
-                setIsLoading(true);
-            }
-            if (args.key === 'changePage') {
-                navigate(args.msg);
-            }
-        });
-
-        ipcRenderer.on('download-progress', (args: any) => {
-            setDownloadProgress(args);
-        });
-
-        ipcRenderer.on('wp-start', (ok: any) => {
+        const onWPEnd = ipcRenderer.on('wp-end', (ok: any) => {
             if (ok) {
-                setIsLoading(false);
-                setIsConnected(true);
-            }
-        });
-
-        ipcRenderer.on('wp-end', (ok: any) => {
-            if (ok) {
-                setIsConnected(false);
-                setIsLoading(false);
                 setIpInfo({
                     countryCode: false,
                     ip: ''
@@ -391,24 +248,29 @@ const useLanding = () => {
         window.addEventListener('offline', handleOnlineStatusChange);
         handleOnlineStatusChange();
 
-        const hasUpdate = localStorage?.getItem('OBLIVION_NEWUPDATE');
-        setHasNewUpdate(typeof hasUpdate !== 'undefined' && hasUpdate === 'true' ? true : false);
-        if (!isLoading) {
-            setTimeout(checkForUpdates, 10000);
-        }
-        const resetCheckUpdateIntervalId = resetCheckUpdateFlag();
-
         return () => {
+            ipcRenderer.removeListener('wp-end', onWPEnd);
+            window.removeEventListener('keydown', onEscapeKeyPressedHandler);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('online', handleOnlineStatusChange);
             window.removeEventListener('offline', handleOnlineStatusChange);
-            clearInterval(resetCheckUpdateIntervalId);
         };
     }, []);
 
     useEffect(() => {
-        if (!isConnected) return;
-        if (!dataUsage) return;
+        if (drawerIsOpen && downloadProgress.percent == 0) {
+            const onDownloadProgress = ipcRenderer.once('download-progress', (args: any) => {
+                toggleDrawer(false);
+            });
+
+            return () => {
+                ipcRenderer.removeListener('download-progress', onDownloadProgress);
+            };
+        }
+    }, [drawerIsOpen]);
+
+    useEffect(() => {
+        if (!isConnected || !dataUsage) return;
         ipcRenderer.on('net-stats', (event: any) => {
             setNetStats((prevNetStats) => ({
                 ...prevNetStats,
@@ -419,6 +281,10 @@ const useLanding = () => {
                 totalUsage: event?.totalUsage
             }));
         });
+
+        return () => {
+            ipcRenderer.removeAllListeners('net-stats');
+        };
     }, [dataUsage, isConnected]);
 
     const ipToast = () => {
@@ -472,33 +338,33 @@ const useLanding = () => {
     }, [method, ipInfo, appLang.status.keep_trying]);
 
     useEffect(() => {
-        if (isConnected) {
-            if (isLoading) {
-                setStatusText(`${appLang?.status?.disconnecting}`);
+        if (!isConnected) {
+            toast.remove('IRAN_IP');
+            setStatusText(isLoading ? appLang?.status?.connecting : appLang?.status?.disconnected);
+            return;
+        }
+
+        if (isLoading) {
+            setStatusText(appLang?.status?.disconnecting);
+            return;
+        }
+
+        if (!hasNewUpdate && !isCheckingForUpdates) ipcRenderer.sendMessage('check-update');
+
+        if (ipInfo?.countryCode) {
+            setStatusText(appLang?.status?.connected_confirm);
+            return;
+        }
+
+        if (ipData) {
+            if (proxyStatus !== 'none') {
+                setStatusText(appLang?.status?.ip_check);
+                getIpLocation();
             } else {
-                setTimeout(checkForUpdates, 10000);
-                if (ipInfo?.countryCode) {
-                    setStatusText(`${appLang?.status?.connected_confirm}`);
-                } else {
-                    if (ipData) {
-                        if (proxyStatus !== 'none') {
-                            setStatusText(`${appLang?.status?.ip_check}`);
-                            getIpLocation();
-                        } else {
-                            setStatusText(`${appLang?.status?.connected}`);
-                        }
-                    } else {
-                        setStatusText(`${appLang?.status?.connected}`);
-                    }
-                }
+                setStatusText(appLang?.status?.connected);
             }
         } else {
-            toast.remove('IRAN_IP');
-            if (isLoading) {
-                setStatusText(`${appLang?.status?.connecting}`);
-            } else {
-                setStatusText(`${appLang?.status?.disconnected}`);
-            }
+            setStatusText(appLang?.status?.connected);
         }
     }, [isLoading, isConnected, ipInfo, ipData, proxyStatus]);
 
@@ -545,6 +411,8 @@ const useLanding = () => {
         statusText,
         ipInfo,
         ping,
+        setIsCheckingForUpdates,
+        isCheckingForUpdates,
         hasNewUpdate,
         drawerIsOpen,
         lang,

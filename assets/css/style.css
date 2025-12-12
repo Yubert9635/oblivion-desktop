@@ -563,6 +563,9 @@ html[data-bs-theme='dark'] .homeScreen .inFoot small {
     margin: 1px 0 0 7px;
     object-fit: cover;
 }
+.homeScreen .inFoot .item img[src*="flagsapi"] {
+    object-fit: none;
+}
 
 .homeScreen .inFoot .item img[alt='false Flag'],
 .homeScreen .inFoot .item img[alt='xx Flag'] {
@@ -2119,6 +2122,64 @@ html:not([lang='fa'])[data-bs-theme='dark'] .splashScreen .splashScreenImg {
 
 [dir='ltr'] .drawer .list ul li .label {
     float: right;
+}
+
+.drawer .loader {
+    float: left;
+    position: relative;
+    width: 7px;
+    height: 7px;
+    margin-top: 8px;
+    margin-inline-end: 9px;
+    border-radius: 4px;
+    background-color: #ffa200;
+    color: #ffa200;
+    animation: dotFlashing 1s infinite linear alternate;
+    animation-delay: 0.5s;
+}
+
+[dir='ltr'] .drawer .loader {
+    float: right;
+}
+
+.drawer .loader::before,
+.drawer .loader::after {
+    content: '';
+    display: inline-block;
+    position: absolute;
+    top: 0;
+}
+
+.drawer .loader::before {
+    left: -10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 4px;
+    background-color: #ffa200;
+    color: #ffa200;
+    animation: dotFlashing 1s infinite alternate;
+    animation-delay: 0s;
+}
+
+.drawer .loader::after {
+    left: 10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 4px;
+    background-color: #ffa200;
+    color: #ffa200;
+    animation: dotFlashing 1s infinite alternate;
+    animation-delay: 1s;
+}
+
+@keyframes dotFlashing {
+    0% {
+        background-color: #ffa200;
+    }
+    50%,
+    100% {
+        background-color: #ffa20033;
+    }
 }
 
 .drawer .appVersion {

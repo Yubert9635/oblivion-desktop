@@ -1,15 +1,14 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
-import useGoBackOnEscape from '../../hooks/useGoBackOnEscape';
 import { settings } from '../../lib/settings';
 import { defaultSettings } from '../../../defaultSettings';
 import { settingsHaveChangedToast } from '../../lib/toasts';
-import { ipcRenderer } from '../../lib/utils';
 import useTranslate from '../../../localization/useTranslate';
 import { toPersianNumber } from '../../lib/toPersianNumber';
 import { DropdownItem } from '../../components/Dropdown';
 import useButtonKeyDown from '../../hooks/useButtonKeyDown';
+import { withDefault } from '../../lib/withDefault';
+import { isAnyUndefined } from '../../lib/isAnyUndefined';
 
 export type Profile = {
     endpoint: string;
@@ -17,7 +16,7 @@ export type Profile = {
 };
 
 const useScanner = () => {
-    const { isConnected, isLoading } = useStore();
+    const { isConnected, isLoading, proxyMode } = useStore();
     const appLang = useTranslate();
 
     const [endpoint, setEndpoint] = useState<string>();
@@ -28,51 +27,21 @@ const useScanner = () => {
     const [rtt, setRtt] = useState<string>();
     const [reserved, setReserved] = useState<boolean>();
     const [lang, setLang] = useState<string>('');
-    const [proxyMode, setProxyMode] = useState<string>('');
-
-    const navigate = useNavigate();
-
-    useGoBackOnEscape();
 
     useEffect(() => {
         settings
-            .getMultiple(['endpoint', 'ipType', 'rtt', 'reserved', 'profiles', 'lang', 'proxyMode'])
+            .getMultiple(['endpoint', 'ipType', 'rtt', 'reserved', 'profiles', 'lang'])
             .then((values) => {
-                setEndpoint(
-                    typeof values.endpoint === 'undefined'
-                        ? defaultSettings.endpoint
-                        : values.endpoint
-                );
-                setIpType(
-                    typeof values.ipType === 'undefined' ? defaultSettings.ipType : values.ipType
-                );
-                setRtt(typeof values.rtt === 'undefined' ? defaultSettings.rtt : values.rtt);
-                setReserved(
-                    typeof values.reserved === 'undefined'
-                        ? defaultSettings.reserved
-                        : values.reserved
-                );
-                setProfiles(
-                    typeof values.profiles === 'undefined'
-                        ? JSON.parse(defaultSettings.profiles)
-                        : JSON.parse(values.profiles)
-                );
-                setLang(typeof values.lang === 'undefined' ? defaultSettings.lang : values.lang);
-                setProxyMode(
-                    typeof values.proxyMode === 'undefined'
-                        ? defaultSettings.proxyMode
-                        : values.proxyMode
-                );
+                setEndpoint(withDefault(values.endpoint, defaultSettings.endpoint));
+                setIpType(withDefault(values.ipType, defaultSettings.ipType));
+                setRtt(withDefault(values.rtt, defaultSettings.rtt));
+                setReserved(withDefault(values.reserved, defaultSettings.reserved));
+                setProfiles(JSON.parse(withDefault(values.profiles, defaultSettings.profiles)));
+                setLang(withDefault(values.lang, defaultSettings.lang));
             })
             .catch((error) => {
                 console.error('Error fetching settings:', error);
             });
-
-        ipcRenderer.on('tray-menu', (args: any) => {
-            if (args.key === 'changePage') {
-                navigate(args.msg);
-            }
-        });
     }, []);
 
     const onCloseEndpointModal = useCallback(() => {
@@ -183,12 +152,7 @@ const useScanner = () => {
 
     const isDefaultEndpoint = useMemo(() => endpoint === defaultSettings.endpoint, [endpoint]);
 
-    const loading =
-        typeof endpoint === 'undefined' ||
-        typeof profiles === 'undefined' ||
-        typeof ipType === 'undefined' ||
-        typeof rtt === 'undefined' ||
-        typeof reserved === 'undefined';
+    const loading = isAnyUndefined(endpoint, profiles, ipType, rtt, reserved);
 
     return {
         endpoint,

@@ -1,6 +1,4 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import useGoBackOnEscape from '../../hooks/useGoBackOnEscape';
 import { useStore } from '../../store';
 import { settings } from '../../lib/settings';
 import { toPersianNumber } from '../../lib/toPersianNumber';
@@ -11,43 +9,36 @@ import { ipcRenderer } from '../../lib/utils';
 import useTranslate from '../../../localization/useTranslate';
 import { DropdownItem } from '../../components/Dropdown';
 import useButtonKeyDown from '../../hooks/useButtonKeyDown';
+import { withDefault } from '../../lib/withDefault';
+import { typeIsNotUndefined } from '../../lib/isAnyUndefined';
 
 const useOptions = () => {
-    const { isConnected, isLoading } = useStore();
+    const { isConnected, isLoading, proxyMode, setProxyMode } = useStore();
     const [lang, setLang] = useState<string>('');
 
-    useGoBackOnEscape();
-
-    // TODO rename to networkConfiguration
-    const [proxyMode, setProxyMode] = useState<string>('');
     //const [autoSetProxy, setAutoSetProxy] = useState<undefined | boolean>();
-    const [port, setPort] = useState<number>();
+    const [port, setPort] = useState<number>(defaultSettings.port);
     const [showPortModal, setShowPortModal] = useState<boolean>(false);
     const appLang = useTranslate();
     const [ipData, setIpData] = useState<boolean>();
-    const [dns, setDns] = useState<string>();
-    const [routingRules, setRoutingRules] = useState<string>();
+    const [dns, setDns] = useState<string>('');
+    const [routingRules, setRoutingRules] = useState<string>(defaultSettings.routingRules);
     const [showRoutingRulesModal, setShowRoutingRulesModal] = useState<boolean>(false);
-    const [method, setMethod] = useState<string>('');
     const [dataUsage, setDataUsage] = useState<boolean>();
     const [networkList, setNetworkList] = useState<DropdownItem[]>([
         { value: '127.0.0.1', label: '127.0.0.1' },
         { value: '0.0.0.0', label: '0.0.0.0' }
     ]);
-    const [checkingLocalIp, setCheckingLocalIp] = useState<boolean>();
     const [hostIp, setHostIp] = useState<string>('');
     const [showDnsModal, setShowDnsModal] = useState<boolean>(false);
     const [plainDns, setPlainDns] = useState<string>();
     const [doh, setDoh] = useState<string>();
-
-    const navigate = useNavigate();
 
     useEffect(() => {
         settings
             .getMultiple([
                 'ipData',
                 'port',
-                'proxyMode',
                 'dns',
                 'routingRules',
                 'lang',
@@ -59,40 +50,16 @@ const useOptions = () => {
                 'networkList'
             ])
             .then((values) => {
-                setPort(typeof values.port === 'undefined' ? defaultSettings.port : values.port);
-                const checkProxy =
-                    typeof values.proxyMode === 'undefined'
-                        ? defaultSettings.proxyMode
-                        : values.proxyMode;
-                setProxyMode(checkProxy);
-                setIpData(
-                    typeof values.ipData === 'undefined' ? defaultSettings.ipData : values.ipData
-                );
-                setDataUsage(
-                    typeof values.dataUsage === 'undefined'
-                        ? defaultSettings.dataUsage
-                        : values.dataUsage
-                );
-                const checkHostIp =
-                    typeof values.hostIP === 'undefined' ? defaultSettings.hostIP : values.hostIP;
-                setHostIp(checkHostIp);
-                setDns(typeof values.dns === 'undefined' ? dnsServers[0].value : values.dns);
-                setRoutingRules(
-                    typeof values.routingRules === 'undefined'
-                        ? defaultSettings.routingRules
-                        : values.routingRules
-                );
-                setLang(typeof values.lang === 'undefined' ? defaultSettings.lang : values.lang);
-                setMethod(
-                    typeof values.method === 'undefined' ? defaultSettings.method : values.method
-                );
-                setPlainDns(
-                    typeof values.plainDns === 'undefined'
-                        ? defaultSettings.plainDns
-                        : values.plainDns
-                );
-                setDoh(typeof values.DoH === 'undefined' ? defaultSettings.DoH : values.DoH);
-                if (typeof values.networkList !== 'undefined') {
+                setPort(withDefault(values.port, defaultSettings.port));
+                setIpData(withDefault(values.ipData, defaultSettings.ipData));
+                setDataUsage(withDefault(values.dataUsage, defaultSettings.dataUsage));
+                setHostIp(withDefault(values.hostIP, defaultSettings.hostIP));
+                setDns(withDefault(values.dns, dnsServers[0].value) || '');
+                setRoutingRules(withDefault(values.routingRules, defaultSettings.routingRules));
+                setLang(withDefault(values.lang, defaultSettings.lang));
+                setPlainDns(withDefault(values.plainDns, defaultSettings.plainDns));
+                setDoh(withDefault(values.DoH, defaultSettings.DoH));
+                if (typeIsNotUndefined(values.networkList)) {
                     setNetworkList((prev) => {
                         try {
                             const rawItems = JSON.parse(values.networkList);
@@ -110,7 +77,7 @@ const useOptions = () => {
                         }
                     });
                 }
-                if (checkProxy === 'none') {
+                if (proxyMode === 'none') {
                     setIpData(false);
                     settings.set('ipData', false);
                     setDataUsage(false);
@@ -120,12 +87,6 @@ const useOptions = () => {
             .catch((error) => {
                 console.error('Error fetching settings:', error);
             });
-
-        ipcRenderer.on('tray-menu', (args: any) => {
-            if (args.key === 'changePage') {
-                navigate(args.msg);
-            }
-        });
     }, []);
 
     const filteredNetworkList: DropdownItem[] = useMemo(() => {
@@ -175,8 +136,8 @@ const useOptions = () => {
     }, []);
 
     const onChangeProxyMode = useCallback(
-        (input: ChangeEvent<HTMLSelectElement> | string) => {
-            const value = typeof input === 'string' ? input : input.target.value;
+        (input: ChangeEvent<HTMLSelectElement>) => {
+            const { value } = input.target;
             //if (proxyMode === value) return;
 
             setProxyMode(value);
@@ -243,7 +204,7 @@ const useOptions = () => {
             setDns('custom');
             await settings.set('plainDns', newPlainDns);
             await settings.set('DoH', newDoh);
-            await settings.set('dns', dnsServers[3].value);
+            await settings.set('dns', 'custom');
             settingsHaveChangedToast({ ...{ isConnected, isLoading, appLang } });
         },
         [isConnected, isLoading, appLang]
@@ -320,6 +281,7 @@ const useOptions = () => {
         dataUsage,
         setPort,
         setRoutingRules,
+        setShowRoutingRulesModal,
         countRoutingRules,
         onClosePortModal,
         onCloseRoutingRulesModal,
@@ -343,8 +305,7 @@ const useOptions = () => {
         setDefaultDns,
         cleanDns,
         setCustomDns,
-        setShowDnsModal,
-        checkingLocalIp
+        setShowDnsModal
     };
 };
 export default useOptions;

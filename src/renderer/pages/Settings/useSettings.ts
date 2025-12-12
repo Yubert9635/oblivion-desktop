@@ -1,64 +1,38 @@
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store';
-import useGoBackOnEscape from '../../hooks/useGoBackOnEscape';
 import { settings } from '../../lib/settings';
 import { countries, defaultSettings } from '../../../defaultSettings';
 import { settingsHaveChangedToast } from '../../lib/toasts';
-import { ipcRenderer } from '../../lib/utils';
+import { platform, arch } from '../../lib/utils';
 import useTranslate from '../../../localization/useTranslate';
 import { DropdownItem } from '../../components/Dropdown';
 import useButtonKeyDown from '../../hooks/useButtonKeyDown';
+import { withDefault } from '../../lib/withDefault';
+import { isAnyUndefined, typeIsNotUndefined, typeIsUndefined } from '../../lib/isAnyUndefined';
 
 const useSettings = () => {
     const appLang = useTranslate();
-    const { isConnected, isLoading } = useStore();
+    const { isConnected, isLoading, proxyMode } = useStore();
 
     const [location, setLocation] = useState<string>();
     const [license, setLicense] = useState<string>();
     const [showLicenseModal, setShowLicenseModal] = useState<boolean>(false);
     const [method, setMethod] = useState<string>('');
-    const [proxyMode, setProxyMode] = useState<string>('');
     const [testUrl, setTestUrl] = useState<string>();
     const [showTestUrlModal, setShowTestUrlModal] = useState<boolean>(false);
 
-    const navigate = useNavigate();
-
-    useGoBackOnEscape();
-
     useEffect(() => {
         settings
-            .getMultiple(['location', 'license', 'method', 'proxyMode', 'testUrl'])
+            .getMultiple(['location', 'license', 'method', 'testUrl'])
             .then((values) => {
-                setLocation(
-                    typeof values.location === 'undefined'
-                        ? defaultSettings.location
-                        : values.location
-                );
-                setLicense(
-                    typeof values.license === 'undefined' ? defaultSettings.license : values.license
-                );
-                setMethod(
-                    typeof values.method === 'undefined' ? defaultSettings.method : values.method
-                );
-                setProxyMode(
-                    typeof values.proxyMode === 'undefined'
-                        ? defaultSettings.proxyMode
-                        : values.proxyMode
-                );
-                setTestUrl(
-                    typeof values.testUrl === 'undefined' ? defaultSettings.testUrl : values.testUrl
-                );
+                setLocation(withDefault(values.location, defaultSettings.location));
+                setLicense(withDefault(values.license, defaultSettings.license));
+                setMethod(withDefault(values.method, defaultSettings.method));
+                setTestUrl(withDefault(values.testUrl, defaultSettings.testUrl));
             })
             .catch((error) => {
                 console.error('Error fetching settings:', error);
             });
-
-        ipcRenderer.on('tray-menu', (args: any) => {
-            if (args.key === 'changePage') {
-                navigate(args.msg);
-            }
-        });
     }, []);
 
     const onCloseLicenseModal = useCallback(() => {
@@ -84,6 +58,14 @@ const useSettings = () => {
     }, [isConnected, isLoading, appLang]);
 
     const onKeyDownGool = useButtonKeyDown(onEnableGool);
+
+    const onEnableMasque = useCallback(() => {
+        setMethod('masque');
+        settings.set('method', 'masque');
+        settingsHaveChangedToast({ ...{ isConnected, isLoading, appLang } });
+    }, [isConnected, isLoading, appLang]);
+
+    const onKeyDownMasque = useButtonKeyDown(onEnableMasque);
 
     const onEnablePsiphon = useCallback(() => {
         //if (proxyMode !== 'tun') {
@@ -115,13 +97,17 @@ const useSettings = () => {
         [appLang?.settings?.method_psiphon_location_auto]
     );
 
-    const methodIsWarp = useMemo(() => typeof method !== 'undefined' && method === '', [method]);
+    const methodIsWarp = useMemo(() => typeIsNotUndefined(method) && method === '', [method]);
     const methodIsGool = useMemo(
-        () => (typeof method !== 'undefined' && method === 'gool') || typeof method === 'undefined',
+        () => (typeIsNotUndefined(method) && method === 'gool') || typeIsUndefined(method),
         [method]
     );
     const methodIsPsiphon = useMemo(
-        () => typeof method !== 'undefined' && method === 'psiphon',
+        () => typeIsNotUndefined(method) && method === 'psiphon',
+        [method]
+    );
+    const methodIsMasque = useMemo(
+        () => typeIsNotUndefined(method) && method === 'masque',
         [method]
     );
 
@@ -133,11 +119,7 @@ const useSettings = () => {
 
     const onKeyDownTestUrl = useButtonKeyDown(onOpenTestUrlModal);
 
-    const loading =
-        typeof location === 'undefined' ||
-        typeof license === 'undefined' ||
-        typeof testUrl === 'undefined' ||
-        typeof method === 'undefined';
+    const loading = isAnyUndefined(location, license, testUrl, method);
 
     return {
         location,
@@ -147,6 +129,7 @@ const useSettings = () => {
         methodIsWarp,
         methodIsGool,
         methodIsPsiphon,
+        methodIsMasque,
         appLang,
         loading,
         locationItems,
@@ -158,6 +141,8 @@ const useSettings = () => {
         onKeyDownWarp,
         onEnableGool,
         onKeyDownGool,
+        onEnableMasque,
+        onKeyDownMasque,
         onEnablePsiphon,
         onKeyDownPsiphon,
         onChangeLocation,
@@ -167,7 +152,8 @@ const useSettings = () => {
         onCloseTestUrlModal,
         onKeyDownTestUrl,
         onOpenTestUrlModal,
-        showTestUrlModal
+        showTestUrlModal,
+        unsupportedArch: platform === 'win32' && arch === 'ia32'
     };
 };
 

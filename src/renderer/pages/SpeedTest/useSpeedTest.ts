@@ -1,14 +1,20 @@
-import { ResultSummary } from '@cloudflare/speedtest';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ipcRenderer } from '../../lib/utils';
 import useTranslate from '../../../localization/useTranslate';
 import { defaultToast } from '../../lib/toasts';
 
+interface TestResults {
+    download?: number;
+    upload?: number;
+    latency?: number;
+    jitter?: number;
+}
+
 const MB_CONVERSION = 1_000_000;
 
 export const useSpeedTest = () => {
     const appLang = useTranslate();
-    const [testResults, setTestResults] = useState<ResultSummary>();
+    const [testResults, setTestResults] = useState<TestResults | undefined>();
     const [isRunning, setIsRunning] = useState<boolean>(false);
     const [isFinished, setIsFinished] = useState<boolean>(false);
     const [testButtonText, setTestButtonText] = useState<string>('play_arrow');
@@ -40,6 +46,13 @@ export const useSpeedTest = () => {
             }
             setTestResults(data);
         });
+
+        return () => {
+            if (isRunning) {
+                ipcRenderer.sendMessage('speed-test', 'pause');
+            }
+            ipcRenderer.removeAllListeners('speed-test');
+        };
     }, [appLang?.toast?.offline]);
 
     const checkServerAvailability = useCallback(async () => {

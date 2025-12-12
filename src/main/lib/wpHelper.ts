@@ -5,6 +5,8 @@ import { removeDirIfExists } from './utils';
 import { getTranslate } from '../../localization';
 import { stuffPath } from '../../constants';
 import WarpPlusManager from './wpManager';
+import { typeIsUndefined } from '../../renderer/lib/isAnyUndefined';
+import { withDefault } from '../../renderer/lib/withDefault';
 //import { customEvent } from './customEvent';
 //import { getTranslateElectron } from '../../localization/electron';
 //import fs from 'fs';
@@ -27,7 +29,8 @@ export const getUserSettings = async () => {
         lang,
         dns,
         plainDns,
-        testUrl
+        testUrl,
+        connectTimeout
     ] = await Promise.all([
         settings.get('endpoint'),
         settings.get('ipType'),
@@ -41,19 +44,19 @@ export const getUserSettings = async () => {
         settings.get('lang'),
         settings.get('dns'),
         settings.get('plainDns'),
-        settings.get('testUrl')
+        settings.get('testUrl'),
+        settings.get('connectTimeout')
     ]);
-    appLang = getTranslate(String(typeof lang !== 'undefined' ? lang : defaultSettings.lang));
+    appLang = getTranslate(String(withDefault(lang, defaultSettings.lang)));
 
     const finalDns =
-        typeof dns === 'string' &&
-        dns === 'custom' &&
-        typeof plainDns === 'string' &&
-        plainDns !== ''
-            ? plainDns
-            : typeof dns === 'string' && dns !== '' && dns !== '1.1.1.1' && dns !== 'custom'
-              ? dns
-              : '';
+        typeof dns !== 'string' || dns === 'local'
+            ? ''
+            : dns === 'custom'
+              ? typeof plainDns === 'string'
+                  ? plainDns
+                  : ''
+              : dns;
 
     return [
         '--bind',
@@ -75,7 +78,7 @@ export const getUserSettings = async () => {
             : ['--gool']),
         ...((typeof endpoint === 'string' &&
             (endpoint === '' || endpoint === defaultSettings.endpoint)) ||
-        typeof endpoint === 'undefined'
+        typeIsUndefined(endpoint)
             ? [
                   '--scan',
                   ...(typeof ipType === 'string' && ipType !== '' ? [ipType] : []),
@@ -88,6 +91,10 @@ export const getUserSettings = async () => {
                       : defaultSettings.endpoint
               ]),
         ...(typeof reserved === 'boolean' && !reserved ? ['--reserved', '0,0,0'] : []),
+        /*...[
+            '--connect-timeout',
+            typeof connectTimeout === 'string' ? connectTimeout : defaultSettings.connectTimeout
+        ],*/
         ...(finalDns !== '' ? ['--dns', finalDns] : [])
     ];
 };

@@ -42,7 +42,9 @@ const amharic: Language = {
         config_added: 'እንደምንም ቅኝት ሰጠውም!',
         profile_added: 'አዲስ ነባሪ አውታረ ስር ያሳዩ!',
         endpoint_added: 'ተስተካክለት አሳዩ፣ ያስተካከልል።',
+        new_update_notification: 'አዲስ ስሪት ተዘጋጅቷል',
         new_update: 'የመተግበሪያው አዲስ ስሪት ዝግጁ ነው። እንዲያው አውርዶ ለመግጠም ዝግጁ ይደረጋል?',
+        up_to_date: 'እትሙ የመተግበሪያውን አዲስ ስሪት እየጠቀሙ ነው',
         exit_pending: 'መተግበሪያው የመውጣት ሂደቱን እየጨረሰ ነው፤ እባክዎ እንደገና ከመጀመሩ በፊት ጥቂት ጊዜ ይጠብቁ።',
         help_btn: 'እርዳታ'
     },
@@ -53,6 +55,8 @@ const amharic: Language = {
         method_warp_desc: 'ዋርፕን እንዲተካ ያስተካክሉ',
         method_gool: 'ጉል',
         method_gool_desc: 'WarpInWarpን እንዲተካ ያስተካክሉ',
+        method_masque: 'ማስክ',
+        method_masque_desc: 'ማስክን እንዲሰራ ያንቀሳቅሱ',
         method_psiphon: 'ፒሲፎን',
         method_psiphon_desc: 'ፒሲፎንን እንዲተካ ያስተካክሉ',
         method_psiphon_location: 'ሀገር',
@@ -181,7 +185,9 @@ const amharic: Language = {
         custom_dns_title: 'የተለየ DNS',
         confirm: 'እባኮትን ይዘው',
         update: 'አዳዲስ ይደርሳሉ',
-        cancel: 'ተመካከተ'
+        cancel: 'ተመካከተ',
+        yes: 'አዎን',
+        no: 'አይ'
     },
     log: {
         title: 'አፕ ሎግ',
@@ -204,6 +210,8 @@ const amharic: Language = {
             'ፕሮክሲ ቅንብር በስርዓትዎ ላይ አልተስፋፋም፣ ነገር ግን Warp Proxy በማንበብ ትጠቀሙ ይችላሉ።',
         error_configuring_proxy: (value) => `${value} ስለማይተስፋፋ፣ ፕሮክሲ ቅንብር ስህተት።`,
         error_wp_not_found: 'የwarp-plus ፋይል በፕሮግራም ፓኬጅ ባለማግኘት።',
+        error_mp_not_found: 'masque-plus ፋይል ከመተግበሪያ ጥቅም ጋር አልተገኘም!',
+        error_usque_not_found: 'usque ፋይል ከመተግበሪያ ጥቅም ጋር አልተገኘም!',
         error_wp_exclusions:
             'ፋይል ወርፕ-ፕላስ በተለምዶ ስለ ተሳሳተ ፋልስ ፖዚቲቭ ማስታወቂያ እና ትክክለኛ ተመን አንቲቫይሩስ ተመልከተ፣ ስለዚህም እትም ስለማንኛውም መሳሪያ ኢንተርኔትን ማግኘት በችግኝ እንደሆነ።\nእባኮትን ፕሮግራሙ ተወላጅ መንገድ ሲሰጠው ፋይሉን በአንቲቫይሩስ ተከታታይ ዝርዝሮች ላይ እንዲጨምር ማንበብ አለበት። እንዲሆን ይኖርብማል?',
         error_wp_stopped: 'የwarp-plus ፋይል ስህተት ተከሰተ ነው።',

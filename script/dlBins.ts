@@ -2,7 +2,13 @@ import fs from 'fs';
 import axios from 'axios';
 import decompress from 'decompress';
 import { doesDirectoryExist, doesFileExist } from '../src/main/lib/utils';
-import { wpVersion, helperVersion, netStatsVersion, proxyResetVersion } from '../src/main/config';
+import {
+    wpVersion,
+    helperVersion,
+    netStatsVersion,
+    proxyResetVersion,
+    mpVersion
+} from '../src/main/config';
 
 const forceDownload = process.argv[2] === 'force';
 const platform = process.argv[3] || process.platform;
@@ -68,9 +74,10 @@ async function dlUnzipMove(url: string, binPath: string, zipFileName: string) {
 }
 
 const warpPlusUrlBase = `https://github.com/bepass-org/warp-plus/releases/download/v${wpVersion}/warp-plus_`;
-const helperUrlBase = `https://github.com/ShadowZagrosDev/oblivion-helper/releases/download/v${helperVersion}/oblivion-helper-`;
+const helperUrlBase = `https://github.com/Dr-Bad/oblivion-helper/releases/download/v${helperVersion}/oblivion-helper-`;
 const netStatsUrlBase = `https://github.com/ShadowZagrosDev/Zag-NetStats/releases/download/v${netStatsVersion}/zag-netStats-`;
 const proxyResetUrlBase = `https://github.com/ircfspace/proxyReset/releases/download/v${proxyResetVersion}/proxy-reset-`;
+const masquePlusUrlBase = `https://github.com/ircfspace/masque-plus/releases/download/v${mpVersion}/masque-plus-`;
 
 const warpPlusUrls: Record<string, Record<string, string>> = {
     linux: {
@@ -128,6 +135,22 @@ const proxyResetUrls: Record<string, Record<string, string>> = {
     }
 };
 
+const masquePlusUrls: Record<string, Record<string, string>> = {
+    linux: {
+        x64: masquePlusUrlBase + 'linux_amd64.zip',
+        arm64: masquePlusUrlBase + 'linux_arm64.zip'
+    },
+    win32: {
+        x64: masquePlusUrlBase + 'windows_amd64.zip',
+        arm64: masquePlusUrlBase + 'windows_arm64.zip',
+        ia32: masquePlusUrlBase + 'windows_amd64.zip' // This architecture is not supported, but it is listed to prevent errors
+    },
+    darwin: {
+        x64: masquePlusUrlBase + 'darwin_amd64.zip',
+        arm64: masquePlusUrlBase + 'darwin_arm64.zip'
+    }
+};
+
 const removeFile = async (filePath: string) => {
     const isExist = await doesFileExist(filePath);
     if (isExist) {
@@ -160,6 +183,12 @@ async function handleDownload() {
             `proxy-reset-v${proxyResetVersion}.zip`
         );
     }
+
+    await dlUnzipMove(
+        masquePlusUrls[platform][arch],
+        './assets/bin',
+        `masque-plus-v${mpVersion}.zip`
+    );
 }
 
 const notSupported = () => console.log('Your platform/architecture is not supported.');

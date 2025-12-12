@@ -44,8 +44,10 @@ const spanish: Language = {
             'La configuración ha sido añadida con éxito, y para usarla debes hacer clic en la conexión.',
         profile_added: 'El endpoint ha sido añadido correctamente al perfil.',
         endpoint_added: 'El endpoint fue reemplazado correctamente.',
+        new_update_notification: 'Una nueva versión está disponible',
         new_update:
             'Hay una nueva versión de la aplicación disponible. ¿Te gustaría descargarla y prepararla para la instalación?',
+        up_to_date: 'Estás usando la versión más reciente de la aplicación',
         exit_pending:
             'La aplicación está completando su proceso de salida; por favor, espere un momento antes de volver a iniciarla.',
         help_btn: 'Ayuda'
@@ -57,6 +59,8 @@ const spanish: Language = {
         method_warp_desc: 'Habilitar Warp',
         method_gool: 'Gool',
         method_gool_desc: 'Habilitar WarpInWarp',
+        method_masque: 'Masque',
+        method_masque_desc: 'Habilitar Masque',
         method_psiphon: 'Psiphon',
         method_psiphon_desc: 'Habilitar Psiphon',
         method_psiphon_location: 'País',
@@ -191,7 +195,9 @@ const spanish: Language = {
         custom_dns_title: 'DNS personalizado',
         confirm: 'Confirmo',
         update: 'Actualizar',
-        cancel: 'Cancelar'
+        cancel: 'Cancelar',
+        yes: 'Sí',
+        no: 'No'
     },
     log: {
         title: 'Registro de la Aplicación',
@@ -217,6 +223,10 @@ const spanish: Language = {
         error_configuring_proxy: (value) => `¡Error configurando el proxy para ${value}!`,
         error_wp_not_found:
             '¡El archivo warp-plus no está ubicado junto al paquete de la aplicación!',
+        error_mp_not_found:
+            '¡El archivo masque-plus no se encuentra junto al paquete de la aplicación!',
+        error_usque_not_found:
+            '¡El archivo usque no se encuentra junto al paquete de la aplicación!',
         error_wp_exclusions:
             'Es probable que el archivo warp-plus haya sido puesto en cuarentena debido a una alerta de falso positivo y una detección incorrecta por parte del antivirus, lo que ha provocado problemas con la capacidad del programa para acceder libremente a Internet.\nEl programa puede agregar el archivo mencionado a la lista de exclusiones en algunos antivirus si se otorgan permisos de acceso. ¿Se debe hacer esto?',
         error_wp_stopped: '¡El archivo warp-plus encontró un problema al ejecutarse!',

@@ -26,7 +26,11 @@ import {
     isLinux,
     soundEffect,
     isWindows,
-    exclusionsPath
+    exclusionsPath,
+    mpPath,
+    mpAssetPath,
+    usquePath,
+    usqueAssetPath
 } from '../../constants';
 
 // Types and Enums
@@ -119,6 +123,14 @@ class WarpPlusManager {
     }
 
     static async addToExclusions() {
+        const exclusionPaths = [
+            wpAssetPath,
+            wpBinPath,
+            mpAssetPath,
+            mpPath,
+            usqueAssetPath,
+            usquePath
+        ];
         const result: any = await dialog.showMessageBox({
             type: 'question',
             buttons: ['No', 'Yes', 'View Guide'],
@@ -144,6 +156,15 @@ class WarpPlusManager {
             }
         }
         const windowsDrive = this.getWinDrive();
+        const defenderCommands = exclusionPaths
+            .map((p) => `powershell -Command "Add-MpPreference -ExclusionPath '${p}'"`)
+            .join('\n');
+        const bitdefenderCommands = exclusionPaths
+            .map(
+                (p) =>
+                    `"${windowsDrive}\\Program Files\\Bitdefender\\Bitdefender Security\\bdagent.exe" /addexclusion "${p}"`
+            )
+            .join('\n');
         const batContent = `@echo off
             chcp 65001 >nul
             set win_drive=${windowsDrive}
@@ -163,15 +184,13 @@ class WarpPlusManager {
             if %errorLevel% neq 0 (
                 set defender_missing=1
             ) else (
-                powershell -Command "Add-MpPreference -ExclusionPath '${wpAssetPath}'"
-                powershell -Command "Add-MpPreference -ExclusionPath '${wpBinPath}'"
+                ${defenderCommands}
                 %COLOR_GREEN% Windows Defender exclusions added.
                 timeout /t 3 >nul
             )
             :: === Bitdefender Check ===
             if exist "%win_drive%\\Program Files\\Bitdefender\\Bitdefender Security\\bdagent.exe" (
-                "%win_drive%\\Program Files\\Bitdefender\\Bitdefender Security\\bdagent.exe" /addexclusion "${wpAssetPath}"
-                "%win_drive%\\Program Files\\Bitdefender\\Bitdefender Security\\bdagent.exe" /addexclusion "${wpBinPath}"
+                ${bitdefenderCommands}
                 %COLOR_GREEN% Bitdefender exclusions added.
                 timeout /t 3 >nul
             ) else (
@@ -229,30 +248,57 @@ class WarpPlusManager {
         }
     }
 
-    static async startWarpPlus() {
-        if (!fs.existsSync(wpBinPath)) {
-            state.event?.reply('guide-toast', state.appLang.log.error_wp_not_found);
-            state.event?.reply('wp-end', true);
-
-            if (fs.existsSync(wpAssetPath) && state.settings.restartCounter < 2) {
-                await settings.set('restartCounter', state.settings.restartCounter + 1);
-                if (isWindows) {
-                    this.addToExclusions();
-                } else {
-                    this.restartApp();
-                }
+    static async handleMissingFile(assetPath: string, errorMsg: string) {
+        state.event?.reply('guide-toast', errorMsg);
+        state.event?.reply('wp-end', true);
+        if (fs.existsSync(assetPath) && state.settings.restartCounter < 2) {
+            await settings.setSync('restartCounter', state.settings.restartCounter + 1);
+            if (isWindows) {
+                this.addToExclusions();
+            } else {
+                this.restartApp();
             }
-            return;
+        }
+        return true;
+    }
+
+    static async startWarpPlus() {
+        const method = (await settings.get('method')) || defaultSettings.method;
+        if (method === 'masque') {
+            if (!fs.existsSync(mpPath)) {
+                if (await this.handleMissingFile(mpAssetPath, state.appLang.log.error_mp_not_found))
+                    return;
+            }
+            if (!fs.existsSync(usquePath)) {
+                if (
+                    await this.handleMissingFile(
+                        usqueAssetPath,
+                        state.appLang.log.error_usque_not_found
+                    )
+                )
+                    return;
+            }
+        } else {
+            if (!fs.existsSync(wpBinPath)) {
+                if (await this.handleMissingFile(wpAssetPath, state.appLang.log.error_wp_not_found))
+                    return;
+            }
         }
 
         try {
             const args = await getUserSettings();
-            log.info('Starting WarpPlus process...');
-            log.info(`${wpBinPath} ${args.join(' ')}`);
-            state.child = spawn(wpBinPath, args, { cwd: workingDirPath });
+            if (method === 'masque') {
+                log.info('Starting MasquePlus process ...');
+                log.info(`${mpPath} ${args.join(' ')}`);
+                state.child = spawn(mpPath, args, { cwd: workingDirPath });
+            } else {
+                log.info('Starting WarpPlus process ...');
+                log.info(`${wpBinPath} ${args.join(' ')}`);
+                state.child = spawn(wpBinPath, args, { cwd: workingDirPath });
+            }
             this.setupChildProcessHandlers();
         } catch (error) {
-            log.error('Error starting WarpPlus:', error);
+            log.error('Error while starting Core:', error);
             this.handleStartupError();
         }
     }
@@ -348,14 +394,14 @@ class WarpPlusManager {
         } else {
             state.connectionState = ConnectionState.CONNECTED;
             this.sendConnectionSignal();
-            await settings.set('restartCounter', 0);
+            await settings.setSync('restartCounter', 0);
         }
     }
 
     private static async handleEndpointUpdates(strData: string) {
         const endpointMatch = strData.match(endpointRegex);
         if (endpointMatch) {
-            await settings.set('scanResult', endpointMatch[1]);
+            await settings.setSync('scanResult', endpointMatch[1]);
         }
     }
 

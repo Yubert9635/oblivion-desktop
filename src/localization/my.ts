@@ -42,7 +42,9 @@ const myanmar: Language = {
         config_added: 'အပ်ဒိတ် ပြောင်းလဲမှု ပြုလုပ်ခဲ့ပါသည်။',
         profile_added: 'နောက်ဆုံး လုပ်ဆောင်ထားသော End-point ၏ profile ဖွင့်နေပါသည်။',
         endpoint_added: 'Endpoint ရှင်းလင်းတယ်',
+        new_update_notification: 'အသစ်သောဗားရှင်းအသစ်ရနိုင်ပါပြီ',
         new_update: 'အပ်ဒိတ်အသစ်ရနိုင်ပါသည်။ ဒေါင်းလုပ်ပြီး ထည့်သွင်းရန် ပြင်ဆင်လိုပါသလား။',
+        up_to_date: 'သင်သည် အက်ပ်၏ နောက်ဆုံးဗားရှင်းကို အသုံးပြုနေပါသည်',
         exit_pending:
             'အက်ပ်သည် ထွက်ခွာခြင်းလုပ်ငန်းစဉ်ကို ပြီးဆုံးနေသည်။ ထပ်မံဖွင့်ရန် မပြုမီ ခဏစောင့်ပေးပါ။',
         help_btn: 'အကူအညီ'
@@ -54,6 +56,8 @@ const myanmar: Language = {
         method_warp_desc: 'Warp ကိုဖွင့်ပါ',
         method_gool: 'Gool',
         method_gool_desc: 'WarpInWarp ကိုဖွင့်ပါ',
+        method_masque: 'Masque',
+        method_masque_desc: 'Masque ကို အသုံးပြုပါ',
         method_psiphon: 'Psiphon',
         method_psiphon_desc: 'Psiphon ကိုဖွင့်ပါ',
         method_psiphon_location: 'တိုင်းပြည်',
@@ -189,7 +193,9 @@ const myanmar: Language = {
         custom_dns_title: 'စိတ်ကြိုက် DNS',
         confirm: 'ကန့်သတ်ပါ',
         update: 'အပ်ဒိတ်',
-        cancel: 'အနှိပ်ပါ'
+        cancel: 'အနှိပ်ပါ',
+        yes: 'ဟုတ်ပါတယ်',
+        no: 'မဟုတ်ပါ'
     },
     log: {
         title: 'အက်ပ်မှတ်တမ်း',
@@ -213,6 +219,8 @@ const myanmar: Language = {
             'Proxy configuration သည် သင့်စက်ပေါ်တွင် မပံ့ပိုးနိုင်ပါ။ သို့သော် Warp Proxy ကို ကိုယ်တိုင်အသုံးပြုနိုင်သည်။',
         error_configuring_proxy: (value) => `${value} proxy အတွက် ပြဿနာ ဖြစ်ခဲ့ပါသည်။`,
         error_wp_not_found: 'warp-plus ဖိုင်သည် ပရိုဂရမ်အဖွဲ့နှင့်အတူ တည်ရှိမည်မဟုတ်ပါ။',
+        error_mp_not_found: 'masque-plus ဖိုင်ကို အက်ပ်ပလီကေးရှင်းထုပ်ပိုးမှုနှင့်အတူ မတွေ့ရှိပါ!',
+        error_usque_not_found: 'usque ဖိုင်ကို အက်ပ်ပလီကေးရှင်းထုပ်ပိုးမှုနှင့်အတူ မတွေ့ရှိပါ!',
         error_wp_exclusions:
             'ကြားဖြတ်မမှန်ခြင်းနှင့်အန်တီဗိုင်းရပ်စ်မှမှားသောရှာဖွေမှုကြောင့် warp-plus ဖိုင်ကိုကာကွယ်ထားခဲ့ပြီး အစီအစဉ်၏အင်တာနက်မှ အခွင့်အလမ်းရရှိခြင်းတွင်ပြproblemများဖြစ်စေပါသည်။\nအစီအစဉ်သည် အချို့သောအန်တီဗိုင်းရပ်စ်များတွင် ဖိုင်ကို ပယ်ပွဲကောက်စာရင်းသို့ထည့်နိုင်သည်။ ၎င်းကို လုပ်ဆောင်သင့်ပါသလား?',
         error_wp_stopped: 'warp-plus ဖိုင်တွင် ပြဿနာရှိနေပါသည်။',

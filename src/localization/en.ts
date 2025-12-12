@@ -43,8 +43,10 @@ const english: Language = {
             'The configuration has been successfully added, and to use it, you must click on the connection.',
         profile_added: 'The endpoint has been successfully added to the profile.',
         endpoint_added: 'The endpoint was successfully replaced.',
+        new_update_notification: 'A new version is available',
         new_update:
             'A new version of the app is available. Would you like to download and prepare it for installation?',
+        up_to_date: "You're running the newest version of the app",
         exit_pending:
             'The application is completing its exit process; please wait a moment before launching it again.',
         help_btn: 'Help'
@@ -56,6 +58,8 @@ const english: Language = {
         method_warp_desc: 'Enable Warp',
         method_gool: 'Gool',
         method_gool_desc: 'Enable WarpInWarp',
+        method_masque: 'Masque',
+        method_masque_desc: 'Enable Masque',
         method_psiphon: 'Psiphon',
         method_psiphon_desc: 'Enable Psiphon',
         method_psiphon_location: 'Country',
@@ -189,7 +193,9 @@ const english: Language = {
         custom_dns_title: 'Custom DNS',
         confirm: 'I confirm',
         update: 'Update',
-        cancel: 'Cancel'
+        cancel: 'Cancel',
+        yes: 'Yes',
+        no: 'No'
     },
     log: {
         title: 'App Log',
@@ -213,6 +219,9 @@ const english: Language = {
             'Proxy configuration is not supported in your operating system, but you can use Warp Proxy manually.',
         error_configuring_proxy: (value) => `Failed to configure proxy for ${value}!`,
         error_wp_not_found: 'The warp-plus file is not located alongside the application package!',
+        error_mp_not_found:
+            'The masque-plus file is not located alongside the application package!',
+        error_usque_not_found: 'The usque file is not located alongside the application package!',
         error_wp_exclusions:
             'The warp-plus file has likely been quarantined due to a false positive alert and incorrect detection by the antivirus, causing issues with the program’s ability to access the internet freely.\nThe program can add the mentioned file to the exclusions list in certain antiviruses if access permission is granted. Should this be done?',
         error_wp_stopped: 'The warp-plus file has encountered an issue running!',

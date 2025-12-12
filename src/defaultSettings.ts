@@ -49,7 +49,8 @@ export type settingsKeys =
     | 'DoH'
     | 'testUrl'
     | 'updaterVersion'
-    | 'networkList';
+    | 'networkList'
+    | 'connectTimeout';
 
 const date = new Date();
 const getTimeZone = date?.toString().toLowerCase();
@@ -103,7 +104,8 @@ export const defaultSettings = {
     plainDns: '',
     DoH: '',
     updaterVersion: null,
-    networkList: '[]'
+    networkList: '[]',
+    connectTimeout: '2m'
 };
 
 export const countries: DropdownItem[] = [
@@ -160,6 +162,7 @@ export const dnsServers: DropdownItem[] = [
     { value: '1.1.1.1', label: 'Cloudflare' },
     { value: '1.1.1.2', label: 'Cloudflare Security' },
     { value: '1.1.1.3', label: 'Cloudflare Family' },
+    { value: 'local', label: 'Local Resolver' },
     { value: 'custom', label: 'Custom' }
 ];
 
@@ -248,5 +251,6 @@ export const defaultRoutingRules: { type: string; value: string }[] = [
     { type: 'domain', value: 'bargheman.com' },
     { type: 'domain', value: 'digikala.com' },
     { type: 'domain', value: 'web.whatsapp.com' },
-    { type: 'domain', value: 'aparat.com' }
+    { type: 'domain', value: 'aparat.com' },
+    { type: 'domain', value: 'chatgpt.com' }
 ];

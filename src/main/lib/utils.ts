@@ -2,6 +2,11 @@ import fs from 'fs';
 import { app, ipcMain } from 'electron';
 import log from 'electron-log';
 import { defaultSettings, dnsServers } from '../../defaultSettings';
+import {
+    isAnyUndefined,
+    typeIsNotUndefined,
+    typeIsUndefined
+} from '../../renderer/lib/isAnyUndefined';
 
 export const isDev = () => process.env.NODE_ENV === 'development';
 
@@ -56,14 +61,11 @@ export function removeDirIfExists(dirPath: string) {
 }
 
 export function shouldProxySystem(proxyMode: any) {
-    return (
-        typeof proxyMode === 'undefined' ||
-        (typeof proxyMode === 'string' && proxyMode === 'system')
-    );
+    return isAnyUndefined(proxyMode) || (typeof proxyMode === 'string' && proxyMode === 'system');
 }
 
 export function hasLicense(license: any) {
-    return typeof license !== 'undefined' && license !== '';
+    return typeIsNotUndefined(license) && license !== '';
 }
 
 export function checkRoutingRules(value: any) {
@@ -71,7 +73,7 @@ export function checkRoutingRules(value: any) {
 }
 
 export function checkEndpoint(endpoint: any) {
-    return typeof endpoint === 'undefined' ||
+    return typeIsUndefined(endpoint) ||
         (typeof endpoint === 'string' && endpoint === defaultSettings.endpoint)
         ? 'default'
         : 'custom';
@@ -128,7 +130,7 @@ export function checkGeoStatus(ip: any, site: any, block: any, nsfw: any) {
 }
 
 export function calculateMethod(method: any) {
-    if (typeof method === 'undefined') {
+    if (typeIsUndefined(method)) {
         return defaultSettings.method;
     }
     switch (method) {
@@ -136,8 +138,24 @@ export function calculateMethod(method: any) {
             return 'gool';
         case 'psiphon':
             return 'psiphon';
+        case 'masque':
+            return 'masque';
         default:
             return 'warp';
+    }
+}
+
+export function isSocksProxy(method: any) {
+    if (typeIsUndefined(method)) {
+        return defaultSettings.method;
+    }
+    switch (method) {
+        case 'psiphon':
+            return true;
+        case 'masque':
+            return true;
+        default:
+            return false;
     }
 }
 
@@ -283,4 +301,29 @@ export function isIpBasedDoH(url: string): boolean {
     } catch (error) {
         return false;
     }
+}
+
+export function versionComparison(localVersion: any, apiVersion: any): boolean {
+    const parts1 = localVersion
+        .toLowerCase()
+        .replace('v', '')
+        .replace('-beta', '')
+        .split('.')
+        .map(Number);
+    const parts2 = apiVersion
+        .toLowerCase()
+        .replace('v', '')
+        .replace('-beta', '')
+        .split('.')
+        .map(Number);
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+        const part1 = parts1[i] || 0;
+        const part2 = parts2[i] || 0;
+        if (part1 > part2) {
+            return false;
+        } else if (part1 < part2) {
+            return true;
+        }
+    }
+    return false;
 }

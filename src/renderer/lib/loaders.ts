@@ -1,12 +1,7 @@
 import { getDirectionByLang } from '../../localization';
 import { defaultSettings } from '../../defaultSettings';
 import { settings } from './settings';
-
-export const clearUpdateNotifOnStartup = () => {
-    if (typeof window === 'undefined') return;
-    localStorage?.removeItem('OBLIVION_CHECKUPDATE');
-    localStorage?.removeItem('OBLIVION_NEWUPDATE');
-};
+import { typeIsUndefined } from './isAnyUndefined';
 
 const detectingSystemTheme =
     typeof window !== 'undefined'
@@ -17,14 +12,14 @@ export const loadTheme = () => {
     settings.get('theme').then((theme) => {
         document.documentElement.setAttribute(
             'data-bs-theme',
-            typeof theme === 'undefined' ? (detectingSystemTheme ? 'dark' : 'light') : theme
+            typeIsUndefined(theme) ? (detectingSystemTheme ? 'dark' : 'light') : theme
         );
     });
 };
 
 export const loadLang = () => {
     settings.get('lang').then((data) => {
-        if (typeof data === 'undefined') {
+        if (typeIsUndefined(data)) {
             data = defaultSettings.lang;
         }
         if (!localStorage.getItem('lang')) {
@@ -53,13 +48,16 @@ export const loadSettings = async () => {
     ];
     try {
         const values = await settings.getMultiple(keyList);
+        // eslint-disable-next-line no-restricted-syntax
         for (const key of keyList) {
             const value = values[key];
-            if (typeof value === 'undefined') {
+            if (typeIsUndefined(value)) {
                 if (key === 'theme') {
                     const defaultTheme = detectingSystemTheme ? 'dark' : 'light';
+                    // eslint-disable-next-line no-await-in-loop
                     await settings.set(key, defaultTheme);
                 } else {
+                    // eslint-disable-next-line no-await-in-loop
                     await settings.set(key, defaultSettings[key]);
                 }
             }

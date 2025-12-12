@@ -8,6 +8,7 @@ import LandingBody from './LandingBody';
 import Tabs from '../../components/Tabs';
 import ConfigHandler from '../../components/ConfigHandler';
 import DownloadProgressBar from './DownloadProgressBar';
+import { isAnyUndefined } from '../../lib/isAnyUndefined';
 
 export default function Landing() {
     const {
@@ -21,6 +22,8 @@ export default function Landing() {
         handleOnClickPing,
         handleOnSwipedLeft,
         handleOnSwipedRight,
+        setIsCheckingForUpdates,
+        isCheckingForUpdates,
         hasNewUpdate,
         ipInfo,
         isConnected,
@@ -38,12 +41,9 @@ export default function Landing() {
         downloadProgress
     } = useLanding();
 
-    if (
-        typeof proxyMode === 'undefined' ||
-        typeof dataUsage === 'undefined' ||
-        typeof betaRelease === 'undefined'
-    )
+    if (isAnyUndefined(proxyMode, dataUsage, betaRelease)) {
         return <div className='homeScreen' />;
+    }
 
     return (
         <>
@@ -61,6 +61,8 @@ export default function Landing() {
                 drawerIsOpen={drawerIsOpen}
                 lang={lang}
                 toggleDrawer={toggleDrawer}
+                setIsCheckingForUpdates={setIsCheckingForUpdates}
+                isCheckingForUpdates={isCheckingForUpdates}
                 hasNewUpdate={hasNewUpdate}
                 appVersion={appVersion}
                 proxyMode={proxyMode}
@@ -78,7 +80,6 @@ export default function Landing() {
                 isLoading={isLoading}
                 onSubmit={onSubmit}
                 ping={ping}
-                proxyMode={proxyMode}
                 statusText={statusText}
                 proxyStatus={proxyStatus}
                 appVersion={appVersion}

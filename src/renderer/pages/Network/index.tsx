@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import { Toaster } from 'react-hot-toast';
+import useOptions from './useOptions';
 import Nav from '../../components/Nav';
 import PortModal from '../../components/Modal/Port';
 import Tabs from '../../components/Tabs';
@@ -8,7 +9,7 @@ import Dropdown, { DropdownItem } from '../../components/Dropdown';
 import { dnsServers } from '../../../defaultSettings';
 //import { platform } from '../../lib/utils';
 import DnsModal from '../../components/Modal/DNS';
-import { useOptionsContext } from '../../context/GlobalContext';
+import { isAnyUndefined } from '../../lib/isAnyUndefined';
 
 const proxyModes: DropdownItem[] = [
     {
@@ -31,6 +32,7 @@ export default function Network() {
         dns,
         setPort,
         setRoutingRules,
+        setShowRoutingRulesModal,
         handleCheckIpDataOnClick,
         handleCheckIpDataOnKeyDown,
         handleDataUsageOnClick,
@@ -61,18 +63,12 @@ export default function Network() {
         setDefaultDns,
         cleanDns,
         setCustomDns,
-        setShowDnsModal,
-        checkingLocalIp
-    } = useOptionsContext();
-    if (
-        typeof ipData === 'undefined' ||
-        typeof port === 'undefined' ||
-        typeof proxyMode === 'undefined' ||
-        typeof dns === 'undefined' ||
-        typeof routingRules === 'undefined' ||
-        typeof dataUsage === 'undefined'
-    )
+        setShowDnsModal
+    } = useOptions();
+
+    if (isAnyUndefined(ipData, port, proxyMode, dns, routingRules, dataUsage)) {
         return <div className='settings' />;
+    }
 
     return (
         <>
@@ -110,7 +106,6 @@ export default function Network() {
                                 value={hostIp ? hostIp : networkList[0]?.value}
                                 label={appLang?.settings?.share_vpn}
                                 tabIndex={0}
-                                isLoading={checkingLocalIp}
                             />
                             <div className='info'>{appLang?.settings?.share_vpn_desc}</div>
                         </div>
@@ -243,6 +238,7 @@ export default function Network() {
                 setRoutingRules={setRoutingRules}
                 title={appLang?.settings?.routing_rules}
                 isOpen={showRoutingRulesModal}
+                setIsOpen={setShowRoutingRulesModal}
                 onClose={onCloseRoutingRulesModal}
             />
             <Toaster

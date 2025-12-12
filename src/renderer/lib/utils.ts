@@ -1,11 +1,13 @@
-export const { ipcRenderer, platform, NODE_ENV, username } = window.electron;
+export const { ipcRenderer, platform, NODE_ENV, username, arch } = window.electron;
 
 export const isDev = () => window.electron.NODE_ENV === 'development';
 
-export const onEscapeKeyPressed = (callback = () => {}) => {
-    document.body.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
+export const onEscapeKeyPressed = (callback: Function) => {
+    function onKeyDown(event: KeyboardEvent) {
+        if (event.code == 'Escape') {
             callback();
         }
-    });
+    }
+    document.body.addEventListener('keydown', onKeyDown);
+    return onKeyDown;
 };

@@ -41,7 +41,9 @@ export interface Toast {
     config_added: string;
     profile_added: string;
     endpoint_added: string;
+    new_update_notification: string;
     new_update: string;
+    up_to_date: string;
     exit_pending: string;
     help_btn: string;
 }
@@ -51,6 +53,8 @@ export interface Settings {
     more: string;
     method_warp: string;
     method_warp_desc: string;
+    method_masque: string;
+    method_masque_desc: string;
     method_gool: string;
     method_gool_desc: string;
     method_psiphon: string;
@@ -184,6 +188,8 @@ export interface Modal {
     confirm: string;
     update: string;
     cancel: string;
+    yes: string;
+    no: string;
 }
 
 export interface Log {
@@ -207,6 +213,8 @@ export interface Log {
     error_configuration_not_supported: string;
     error_configuring_proxy: (value: string) => string;
     error_wp_not_found: string;
+    error_mp_not_found: string;
+    error_usque_not_found: string;
     error_wp_exclusions: string;
     error_wp_stopped: string;
     error_connection_failed: string;

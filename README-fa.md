@@ -64,9 +64,10 @@ Cloudflare Warp فراهم می‌کند.
         <tr>
             <td>روش</td>
             <td>
-                :white_check_mark:  Warp & Warp+ <br>
-                :white_check_mark:  Gool<br>
-                :white_check_mark:  Cfon <small>(Psiphon)</small>
+                :white_check_mark:  وارپ<br>
+                :white_check_mark:  گول<br>
+                :white_check_mark:  سیفون <small>(سایفون)</small><br>
+                :white_check_mark:  مسک
             </td>
         </tr>
         <tr>
@@ -238,6 +239,7 @@ Cloudflare Warp فراهم می‌کند.
 - [warp-plus](https://github.com/bepass-org/warp-plus/) (یوسف قبادی و مارک پشم‌فروش)
 - [Oblivion](https://github.com/bepass-org/oblivion)
 - [Oblivion Helper](https://github.com/ShadowZagrosDev/oblivion-helper) (GPLv3)
+- [Masque-Plus](https://github.com/ircfspace/masque-plus)
 - [Electron](https://www.electronjs.org/)
 - [React](https://github.com/facebook/react)
 - [electron-react-boilerplate](https://github.com/electron-react-boilerplate/electron-react-boilerplate)

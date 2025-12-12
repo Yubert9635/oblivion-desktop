@@ -1,7 +1,6 @@
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router';
 
-import useGoBackOnEscape from '../../hooks/useGoBackOnEscape';
 import { settings } from '../../lib/settings';
 import { defaultSettings } from '../../../defaultSettings';
 import { ipcRenderer } from '../../lib/utils';
@@ -13,9 +12,11 @@ import {
 } from '../../../localization';
 import useTranslate from '../../../localization/useTranslate';
 import useButtonKeyDown from '../../hooks/useButtonKeyDown';
+import { withDefault } from '../../lib/withDefault';
+import { useStore } from '../../store';
 
 const useOptions = () => {
-    useGoBackOnEscape();
+    const { isCheckingForUpdates, setIsCheckingForUpdates, hasNewUpdate, proxyMode } = useStore();
 
     const [theme, setTheme] = useState<string>();
     const [lang, setLang] = useState<string>('');
@@ -26,7 +27,6 @@ const useOptions = () => {
     const [showRestoreModal, setShowRestoreModal] = useState<boolean>(false);
     const [shortcut, setShortcut] = useState<boolean>(false);
     const [soundEffect, setSoundEffect] = useState<boolean>(false);
-    const [proxyMode, setProxyMode] = useState<string>('');
     const [betaRelease, setBetaRelease] = useState<boolean>(false);
 
     const appLang = useTranslate();
@@ -35,8 +35,6 @@ const useOptions = () => {
     const { targetId } = state || {};
     const langRef = useRef<HTMLDivElement>(null);
     const detectingSystemTheme = window?.matchMedia('(prefers-color-scheme: dark)')?.matches;
-
-    const navigate = useNavigate();
 
     useEffect(() => {
         setTimeout(function () {
@@ -61,68 +59,25 @@ const useOptions = () => {
                 'forceClose',
                 'shortcut',
                 'soundEffect',
-                'proxyMode',
                 'betaRelease'
             ])
             .then((values) => {
-                setTheme(
-                    typeof values.theme === 'undefined'
-                        ? detectingSystemTheme
-                            ? 'dark'
-                            : 'light'
-                        : values.theme
-                );
-                setLang(typeof values.lang === 'undefined' ? getLanguageName() : values.lang);
-                setOpenAtLogin(
-                    typeof values.openAtLogin === 'undefined'
-                        ? defaultSettings.openAtLogin
-                        : values.openAtLogin
-                );
-                setAutoConnect(
-                    typeof values.autoConnect === 'undefined'
-                        ? defaultSettings.autoConnect
-                        : values.autoConnect
-                );
+                setTheme(withDefault(values.theme, detectingSystemTheme ? 'dark' : 'light'));
+
+                setLang(withDefault(values.lang, getLanguageName()));
+                setOpenAtLogin(withDefault(values.openAtLogin, defaultSettings.openAtLogin));
+                setAutoConnect(withDefault(values.autoConnect, defaultSettings.autoConnect));
                 setStartMinimized(
-                    typeof values.startMinimized === 'undefined'
-                        ? defaultSettings.startMinimized
-                        : values.startMinimized
+                    withDefault(values.startMinimized, defaultSettings.startMinimized)
                 );
-                setForceClose(
-                    typeof values.forceClose === 'undefined'
-                        ? defaultSettings.forceClose
-                        : values.forceClose
-                );
-                setShortcut(
-                    typeof values.shortcut === 'undefined'
-                        ? defaultSettings.shortcut
-                        : values.shortcut
-                );
-                setSoundEffect(
-                    typeof values.soundEffect === 'undefined'
-                        ? defaultSettings.soundEffect
-                        : values.soundEffect
-                );
-                setProxyMode(
-                    typeof values.proxyMode === 'undefined'
-                        ? defaultSettings.proxyMode
-                        : values.proxyMode
-                );
-                setBetaRelease(
-                    typeof values.betaRelease === 'undefined'
-                        ? defaultSettings.betaRelease
-                        : values.betaRelease
-                );
+                setForceClose(withDefault(values.forceClose, defaultSettings.forceClose));
+                setShortcut(withDefault(values.shortcut, defaultSettings.shortcut));
+                setSoundEffect(withDefault(values.soundEffect, defaultSettings.soundEffect));
+                setBetaRelease(withDefault(values.betaRelease, defaultSettings.betaRelease));
             })
             .catch((error) => {
                 console.error('Error fetching settings:', error);
             });
-
-        ipcRenderer.on('tray-menu', (args: any) => {
-            if (args.key === 'changePage') {
-                navigate(args.msg);
-            }
-        });
     }, []);
 
     const onCloseRestoreModal = useCallback(() => {
@@ -196,10 +151,13 @@ const useOptions = () => {
 
     const onKeyDownRestore = useButtonKeyDown(onClickRestore);
 
-    const onClickBetaReleaseButton = useCallback(() => {
+    const onClickBetaReleaseButton = useCallback(async () => {
         setBetaRelease(!betaRelease);
-        settings.set('betaRelease', !betaRelease);
-        localStorage.setItem('OBLIVION_CHECKUPDATE', 'true');
+        await settings.set('betaRelease', !betaRelease);
+        if (betaRelease != hasNewUpdate && !isCheckingForUpdates) {
+            setIsCheckingForUpdates(true);
+            ipcRenderer.sendMessage('check-update');
+        }
     }, [betaRelease]);
 
     const onKeyDownBetaReleaseButton = useButtonKeyDown(onClickBetaReleaseButton);
